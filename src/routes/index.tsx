@@ -78,7 +78,7 @@ const DRAFT_KEY = "mp_tool_draft_v1";
 function Editor() {
   const [markdown, setMarkdown] = useState(SAMPLE);
   const [customThemes, setCustomThemes] = useState<Theme[]>([]);
-  const [themeId, setThemeId] = useState(BUILTIN_THEMES[0].id);
+  const [themeId, setThemeId] = useState(BUILTIN_THEMES[0]!.id);
   const [status, setStatus] = useState<string>("");
   const [showThemeForm, setShowThemeForm] = useState(false);
   const [form, setForm] = useState<ThemeConfig>({
@@ -102,7 +102,7 @@ function Editor() {
   }, [markdown]);
 
   const themes = useMemo(() => [...BUILTIN_THEMES, ...customThemes], [customThemes]);
-  const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0];
+  const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0]!;
   const html = useMemo(() => {
     try {
       return renderWeixinHtml(markdown, theme);
@@ -222,7 +222,7 @@ function Editor() {
     const next = customThemes.filter((t) => t.id !== id);
     setCustomThemes(next);
     saveCustomThemes(next);
-    if (themeId === id) setThemeId(BUILTIN_THEMES[0].id);
+    if (themeId === id) setThemeId(BUILTIN_THEMES[0]!.id);
   };
 
   const toolbar: [string, () => void][] = [

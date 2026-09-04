@@ -122,7 +122,7 @@ function pickColor(style: string, props: string[]): string | undefined {
   for (const p of props) {
     const re = new RegExp(`${p}[^;:]*:\\s*([^;]+)`, "i");
     const m = style.match(re);
-    const c = m && firstColor(m[1]);
+    const c = m && firstColor(m[1]!);
     if (c) return c;
   }
   return undefined;
@@ -133,9 +133,9 @@ function firstColor(chunk: string): string | undefined {
   if (hex) return normalizeHex(hex[0]);
   const rgb = chunk.match(/rgba?\(([^)]+)\)/);
   if (rgb) {
-    const [r, g, b] = rgb[1].split(",").map((v) => Number(v.trim()));
+    const [r, g, b] = rgb[1]!.split(",").map((v) => Number(v.trim()));
     if ([r, g, b].every((v) => Number.isFinite(v)))
-      return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+      return "#" + [r, g, b].map((v) => v!.toString(16).padStart(2, "0")).join("");
   }
   return undefined;
 }
@@ -149,7 +149,7 @@ function normalizeHex(hex: string) {
 function secondGradientColor(style: string): string | undefined {
   const g = style.match(/linear-gradient\(([^)]+)\)/);
   if (!g) return undefined;
-  const colors = g[1].match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g);
-  if (colors && colors.length > 1) return firstColor(colors[colors.length - 1]);
+  const colors = g[1]!.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g);
+  if (colors && colors.length > 1) return firstColor(colors[colors.length - 1]!);
   return undefined;
 }

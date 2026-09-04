@@ -87,9 +87,9 @@ function expandContainers(markdown: string, theme: Theme, renderer: Renderer): s
     const open = line.match(/^:::\s*(card|tip|warn|divider)\s*(.*)$/);
     if (!block && open) {
       flushBuffer();
-      block = { type: open[1], title: open[2].trim(), content: [] };
+      block = { type: open[1]!, title: open[2]!.trim(), content: [] };
       if (open[1] === "divider") {
-        out.push(`<section style="${s.divider}">${escapeHtml(open[2].trim() || "· · ·")}</section>`);
+        out.push(`<section style="${s.divider}">${escapeHtml(open[2]!.trim() || "· · ·")}</section>`);
         block = null;
       }
       continue;
