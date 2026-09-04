@@ -54,15 +54,15 @@ const css = (o: Record<string, string | number | undefined>) =>
 
 export function buildStyles(c: ThemeConfig): Styles {
   const fs = c.fontSize ?? 15;
-  const lh = c.lineHeight ?? 1.85;
+  const lh = c.lineHeight ?? 1.6;
   const text = c.textColor ?? "#3f3f46";
   const grad = `linear-gradient(135deg, ${c.primary} 0%, ${c.accent} 100%)`;
 
   const headingBase = {
-    margin: "34px 0 18px 0",
+    margin: "28px 0 16px 0",
     fontSize: `${fs + 3}px`,
     fontWeight: "bold",
-    lineHeight: "1.5",
+    lineHeight: "1.45",
     letterSpacing: "0.5px",
   };
 
@@ -112,23 +112,23 @@ export function buildStyles(c: ThemeConfig): Styles {
         "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif",
     }),
     h1: css({
-      margin: "10px 0 24px 0",
+      margin: "8px 0 20px 0",
       fontSize: `${fs + 7}px`,
       fontWeight: "bold",
       textAlign: "center",
       color: c.primary,
-      lineHeight: "1.4",
+      lineHeight: "1.35",
     }),
     h2,
     h3: css({
-      margin: "26px 0 14px 0",
+      margin: "22px 0 12px 0",
       fontSize: `${fs + 1}px`,
       fontWeight: "bold",
       color: c.primary,
-      lineHeight: "1.5",
+      lineHeight: "1.45",
     }),
     p: css({
-      margin: "0 0 18px 0",
+      margin: "0 0 14px 0",
       fontSize: `${fs}px`,
       lineHeight: `${lh}`,
       color: text,
@@ -137,17 +137,17 @@ export function buildStyles(c: ThemeConfig): Styles {
     strong: css({ color: c.primary, fontWeight: "bold" }),
     em: css({ fontStyle: "italic", color: "#71717a" }),
     a: css({ color: c.accent, textDecoration: "none", borderBottom: `1px solid ${c.accent}66` }),
-    ul: css({ margin: "0 0 18px 0", paddingLeft: "22px", listStyle: "disc" }),
-    ol: css({ margin: "0 0 18px 0", paddingLeft: "22px", listStyle: "decimal" }),
+    ul: css({ margin: "0 0 14px 0", paddingLeft: "22px", listStyle: "disc" }),
+    ol: css({ margin: "0 0 14px 0", paddingLeft: "22px", listStyle: "decimal" }),
     li: css({
-      margin: "0 0 8px 0",
+      margin: "0 0 6px 0",
       fontSize: `${fs}px`,
       lineHeight: `${lh}`,
       color: text,
     }),
     blockquote: css({
-      margin: "0 0 20px 0",
-      padding: "14px 16px",
+      margin: "0 0 16px 0",
+      padding: "12px 14px",
       background: `${c.primary}0f`,
       borderLeft: `4px solid ${c.primary}`,
       borderRadius: "0 8px 8px 0",
@@ -165,28 +165,28 @@ export function buildStyles(c: ThemeConfig): Styles {
       fontFamily: "Menlo, Consolas, monospace",
     }),
     pre: css({
-      margin: "0 0 20px 0",
-      padding: "16px",
+      margin: "0 0 16px 0",
+      padding: "14px",
       background: "#1e1e2e",
       color: "#e4e4e7",
       borderRadius: "10px",
       fontSize: `${fs - 2}px`,
-      lineHeight: "1.7",
+      lineHeight: "1.55",
       overflowX: "auto",
       fontFamily: "Menlo, Consolas, monospace",
       whiteSpace: "pre",
     }),
-    img: css({ maxWidth: "100%", borderRadius: "8px", display: "block", margin: "0 auto 18px" }),
+    img: css({ maxWidth: "100%", borderRadius: "8px", display: "block", margin: "0 auto 14px" }),
     hr: css({
       border: "none",
       height: "1px",
       background: `linear-gradient(90deg, transparent, ${c.primary}80, transparent)`,
-      margin: "28px 0",
+      margin: "22px 0",
     }),
     table: css({
       width: "100%",
       borderCollapse: "collapse",
-      margin: "0 0 20px 0",
+      margin: "0 0 16px 0",
       fontSize: `${fs - 2}px`,
     }),
     th: css({
@@ -198,8 +198,8 @@ export function buildStyles(c: ThemeConfig): Styles {
     }),
     td: css({ padding: "10px", border: "1px solid #e4e4e7" }),
     card: css({
-      margin: "0 0 20px 0",
-      padding: "18px",
+      margin: "0 0 16px 0",
+      padding: "16px",
       border: `1px solid ${c.primary}33`,
       borderRadius: "12px",
       background: "#ffffff",
@@ -212,8 +212,8 @@ export function buildStyles(c: ThemeConfig): Styles {
       color: c.primary,
     }),
     tip: css({
-      margin: "0 0 20px 0",
-      padding: "14px 16px",
+      margin: "0 0 16px 0",
+      padding: "12px 14px",
       background: `${c.accent}12`,
       border: `1px solid ${c.accent}40`,
       borderRadius: "10px",
@@ -221,8 +221,8 @@ export function buildStyles(c: ThemeConfig): Styles {
       color: "#52525b",
     }),
     warn: css({
-      margin: "0 0 20px 0",
-      padding: "14px 16px",
+      margin: "0 0 16px 0",
+      padding: "12px 14px",
       background: "#fff7ed",
       border: "1px solid #fdba74",
       borderRadius: "10px",
@@ -230,7 +230,7 @@ export function buildStyles(c: ThemeConfig): Styles {
       color: "#9a3412",
     }),
     divider: css({
-      margin: "26px 0",
+      margin: "20px 0",
       textAlign: "center",
       color: `${c.primary}99`,
       fontSize: `${fs - 2}px`,
