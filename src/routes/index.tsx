@@ -9,18 +9,17 @@ import {
   type Theme,
   type ThemeConfig,
 } from "@/lib/theme";
-import { extractThemeFromZip } from "@/lib/extract-theme";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "md2wxarticle · Markdown 转公众号排版工具" },
+      { title: "WeChat-article · Markdown 转公众号排版工具" },
       {
         name: "description",
         content:
-          "左写 Markdown，右看公众号效果：内置主题、从文章 zip 提取排版样式、一键复制内联样式 HTML 粘贴到公众号后台。",
+          "左写 Markdown，右看公众号效果：内置多套主题、自定义主题、一键复制内联样式 HTML 粘贴到公众号后台。",
       },
-      { property: "og:title", content: "md2wxarticle · Markdown 转公众号排版工具" },
+      { property: "og:title", content: "WeChat-article · Markdown 转公众号排版工具" },
       {
         property: "og:description",
         content: "左写右看、主题系统、一键复制内联样式 HTML 的公众号排版神器。",
@@ -41,7 +40,7 @@ const SAMPLE = `# 用 Markdown 写公众号，10 秒排完版
 每次写完文章，最烦的就是调格式。字号、行距、颜色、编号、引用卡片、代码块缩进——每篇都要重来一遍。
 
 - **左写右看**：375px 手机宽度实时预览
-- **主题系统**：内置主题 + 从公众号文章 zip 提取样式
+- **主题系统**：内置小浣熊紫 / 极客绿 / 墨水蓝 / 落日橙 / 樱花粉
 - **一键复制**：内联样式 HTML，粘贴即用
 
 ## 扩展语法
@@ -55,7 +54,7 @@ const SAMPLE = `# 用 Markdown 写公众号，10 秒排完版
 :::
 
 :::warn 注意
-提取主题时请上传包含 .html 的完整 zip 包。
+切换右上角主题下拉框即可实时预览不同风格。
 :::
 
 :::divider · · ·
@@ -88,7 +87,6 @@ function Editor() {
     headingStyle: "gradient",
   });
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCustomThemes(loadCustomThemes());
@@ -191,23 +189,6 @@ function Editor() {
     }
   };
 
-  const onZip = async (file?: File) => {
-    if (!file) return;
-    flash("正在解析文章样式…");
-    try {
-      const extracted = await extractThemeFromZip(file);
-      const name = window.prompt("主题名称", extracted.name) || extracted.name;
-      const t = { ...extracted, name };
-      const next = [...customThemes, t];
-      setCustomThemes(next);
-      saveCustomThemes(next);
-      setThemeId(t.id);
-      flash(`已提取主题「${name}」`);
-    } catch (e) {
-      flash("提取失败：" + (e as Error).message);
-    }
-  };
-
   const saveForm = () => {
     const t = makeTheme(`custom-${Date.now()}`, form);
     const next = [...customThemes, t];
@@ -243,7 +224,7 @@ function Editor() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3">
         <h1 className="text-base font-bold tracking-tight">
-          md2wx<span className="text-primary">article</span>
+          WeChat<span className="text-primary">-article</span>
         </h1>
         <span className="hidden text-xs text-muted-foreground sm:inline">
           左写 Markdown · 右看公众号 · 一键复制
@@ -275,19 +256,6 @@ function Editor() {
           >
             自定义主题
           </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="rounded-md border border-border px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
-          >
-            从文章 zip 提取
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".zip"
-            className="hidden"
-            onChange={(e) => onZip(e.target.files?.[0])}
-          />
           <button
             onClick={copyHtml}
             className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
