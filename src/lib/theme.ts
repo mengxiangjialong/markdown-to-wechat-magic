@@ -272,6 +272,17 @@ export const BUILTIN_THEMES: Theme[] = [
     { name: "落日橙", primary: "#ea580c", accent: "#fb923c", headingStyle: "text" },
     true,
   ),
+  makeTheme(
+    "sakura-pink",
+    {
+      name: "樱花粉",
+      primary: "#e75480",
+      accent: "#ffb7c5",
+      headingStyle: "gradient",
+      textColor: "#4b3b41",
+    },
+    true,
+  ),
 ];
 
 export const STORAGE_KEY = "mp_tool_custom_themes_v1";
