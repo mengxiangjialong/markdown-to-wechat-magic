@@ -143,7 +143,6 @@ function fenceCodeBlocks(lines: string[]): string[] {
           let j = i + 1;
           while (j < lines.length && lines[j]!.trim() === "") j++;
           if (j < lines.length && isCodeCont(lines[j]!) && !/^```/.test(lines[j]!.trim())) {
-            block.push("");
             i = j;
             continue;
           }
