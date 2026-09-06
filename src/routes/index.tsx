@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderWeixinHtml } from "@/lib/md2wx";
+import { normalizeClipboard } from "@/lib/paste-normalize";
 import {
   BUILTIN_THEMES,
   loadCustomThemes,
@@ -355,6 +356,7 @@ function Editor() {
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
             spellCheck={false}
             className="min-h-0 flex-1 resize-none bg-background p-5 font-mono text-sm leading-relaxed outline-none"
           />
