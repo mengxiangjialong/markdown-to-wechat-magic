@@ -105,7 +105,7 @@ const CODE_CONT = /^([)\]}][;,)\]}]*$|#\s|\/\/|["'`].*[,:]?$|.*[,({[]$|@\w)/;
 function isCodeish(line: string): boolean {
   const t = line.trim();
   if (t === "") return false;
-  if (/^#{1,6}\s/.test(t) && !/^\s/.test(line)) return /^#\s*\d+\./.test(t) === false ? false : true;
+  if (/^#/.test(t)) return false;
   return ENV_LINE.test(t) || CODE_HINT.test(line);
 }
 
@@ -136,7 +136,6 @@ function fenceCodeBlocks(lines: string[]): string[] {
     }
     if (isCodeish(line)) {
       const block: string[] = [];
-      let allEnv = true;
       while (i < lines.length) {
         const cur = lines[i]!;
         if (cur.trim() === "") {
@@ -152,13 +151,12 @@ function fenceCodeBlocks(lines: string[]): string[] {
         }
         if (/^```/.test(cur.trim())) break;
         if (!isCodeCont(cur)) break;
-        if (!ENV_LINE.test(cur.trim())) allEnv = false;
         block.push(cur.replace(/\s+$/, ""));
         i++;
       }
       while (block.length && block[block.length - 1] === "") block.pop();
       if (block.length) {
-        out.push("", `\`\`\`${allEnv ? "env" : "env"}`, ...block, "```", "");
+        out.push("", `\`\`\`env`, ...block, "```", "");
         continue;
       }
     }
