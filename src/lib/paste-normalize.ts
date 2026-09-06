@@ -49,12 +49,17 @@ export function htmlToMarkdown(html: string): string {
 /** 合并被复制工具拆开的换行：下一行以标点或补语开头时，接回上一行 */
 function mergeBrokenLines(lines: string[]): string[] {
   const out: string[] = [];
-  const startsWithPunct = (l: string) => /^[：:，,。.、；;）)】」』%》>?？!！]/.test(l);
+  const startsWithPunct = (l: string) => /^[：:，,。、；;）】」』%》?？!！]/.test(l);
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, "");
     const prev = out.length ? out[out.length - 1]! : "";
     if (line.trim() === "") {
       if (prev !== "") out.push("");
+      continue;
+    }
+    // 代码行（含括号收尾、缩进、注释）不参与合并，避免破坏代码块
+    if (isCodeish(line) || isCodeish(prev)) {
+      out.push(line);
       continue;
     }
     if (startsWithPunct(line.trim())) {
