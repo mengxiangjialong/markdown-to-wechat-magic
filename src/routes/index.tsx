@@ -133,14 +133,34 @@ function Editor() {
     const { selectionStart: s, selectionEnd: e, value } = ta;
     const start = value.lastIndexOf("\n", s - 1) + 1;
     const end = value.indexOf("\n", e) === -1 ? value.length : value.indexOf("\n", e);
-    const block = value
-      .slice(start, end)
+    const original = value.slice(start, end);
+    const block = original
       .split("\n")
       .map((l) => (l.startsWith(prefix) ? l.slice(prefix.length) : prefix + l))
       .join("\n");
+    const delta = block.length - original.length;
+    const firstLineDelta = original.startsWith(prefix) ? -prefix.length : prefix.length;
     setMarkdown(value.slice(0, start) + block + value.slice(end));
-    requestAnimationFrame(() => ta.focus());
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(Math.max(start, s + firstLineDelta), Math.max(start, e + delta));
+    });
   }, []);
+
+  const onPaste = useCallback((ev: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const ta = ev.currentTarget;
+    const text = normalizeClipboard(ev);
+    if (!text) return;
+    ev.preventDefault();
+    const { selectionStart: s, selectionEnd: e, value } = ta;
+    setMarkdown(value.slice(0, s) + text + value.slice(e));
+    const pos = s + text.length;
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(pos, pos);
+    });
+  }, []);
+
 
   const onKeyDown = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const mod = ev.metaKey || ev.ctrlKey;
