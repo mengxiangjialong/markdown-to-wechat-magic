@@ -59,7 +59,7 @@ export function buildStyles(c: ThemeConfig): Styles {
   const grad = `linear-gradient(135deg, ${c.primary} 0%, ${c.accent} 100%)`;
 
   const headingBase = {
-    margin: "28px 0 16px 0",
+    margin: "14px 0 8px 0",
     fontSize: `${fs + 3}px`,
     fontWeight: "bold",
     lineHeight: "1.45",
@@ -112,7 +112,7 @@ export function buildStyles(c: ThemeConfig): Styles {
         "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif",
     }),
     h1: css({
-      margin: "8px 0 20px 0",
+      margin: "4px 0 10px 0",
       fontSize: `${fs + 7}px`,
       fontWeight: "bold",
       textAlign: "center",
@@ -121,7 +121,7 @@ export function buildStyles(c: ThemeConfig): Styles {
     }),
     h2,
     h3: css({
-      margin: "22px 0 12px 0",
+      margin: "11px 0 6px 0",
       fontSize: `${fs + 1}px`,
       fontWeight: "bold",
       color: c.primary,

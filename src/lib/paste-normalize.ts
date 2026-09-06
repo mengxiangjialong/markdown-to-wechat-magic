@@ -49,12 +49,17 @@ export function htmlToMarkdown(html: string): string {
 /** 合并被复制工具拆开的换行：下一行以标点或补语开头时，接回上一行 */
 function mergeBrokenLines(lines: string[]): string[] {
   const out: string[] = [];
-  const startsWithPunct = (l: string) => /^[：:，,。.、；;）)】」』%》>?？!！]/.test(l);
+  const startsWithPunct = (l: string) => /^[：:，,。、；;）】」』%》?？!！]/.test(l);
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, "");
     const prev = out.length ? out[out.length - 1]! : "";
     if (line.trim() === "") {
       if (prev !== "") out.push("");
+      continue;
+    }
+    // 代码行（含括号收尾、缩进、注释）不参与合并，避免破坏代码块
+    if (isCodeish(line) || isCodeish(prev)) {
+      out.push(line);
       continue;
     }
     if (startsWithPunct(line.trim())) {
@@ -91,10 +96,27 @@ function toHeading(line: string): string | null {
 }
 
 const CODE_HINT =
-  /^(\s{4,}|\t|[$>] |npm |yarn |pnpm |bun |pip |curl |git |import |export |const |let |var |function |class |def |public |private |return |if \(|for \(|<\/?[a-z]|[{}]$|[\w.]+\(.*\);?$)/;
+  /^(\s{2,}|\t|[$>] |npm |yarn |pnpm |bun |pip |curl |git |from |import |export |const |let |var |function |class |def |public |private |return |if [({]|for [({]|<\/?[a-z]|[\w.]+\(.*\)[;,]?$|[\w.[\]"']+\s*=\s*.+$)/;
 const ENV_LINE = /^[A-Z][A-Z0-9_]{2,}\s*=/;
+/** 代码块内部的延续行：括号收尾、注释、字符串项、以逗号/开括号结尾 */
+const CODE_CONT = /^([)\]}][;,)\]}]*$|#\s|\/\/|["'`].*[,:]?$|.*[,({[]$|@\w)/;
 
-/** 连续的代码行自动加围栏 */
+/** 该行看起来像代码（用于起始判断） */
+function isCodeish(line: string): boolean {
+  const t = line.trim();
+  if (t === "") return false;
+  if (/^#/.test(t)) return false;
+  return ENV_LINE.test(t) || CODE_HINT.test(line);
+}
+
+/** 该行可以留在代码块内部 */
+function isCodeCont(line: string): boolean {
+  const t = line.trim();
+  if (t === "") return false;
+  return isCodeish(line) || CODE_CONT.test(t);
+}
+
+/** 连续的代码行自动加围栏（空行不会打断代码块） */
 function fenceCodeBlocks(lines: string[]): string[] {
   const out: string[] = [];
   let i = 0;
@@ -112,22 +134,28 @@ function fenceCodeBlocks(lines: string[]): string[] {
       i++;
       continue;
     }
-    const isEnv = ENV_LINE.test(line.trim());
-    const isCode = isEnv || (line.trim() !== "" && CODE_HINT.test(line));
-    if (isCode) {
+    if (isCodeish(line)) {
       const block: string[] = [];
-      let allEnv = true;
       while (i < lines.length) {
         const cur = lines[i]!;
-        if (cur.trim() === "") break;
-        const curEnv = ENV_LINE.test(cur.trim());
-        if (!curEnv && !CODE_HINT.test(cur)) break;
-        if (!curEnv) allEnv = false;
-        block.push(cur.replace(/^\s{0,3}/, ""));
+        if (cur.trim() === "") {
+          // 向前看：后面若仍是代码，保留空行继续同一个代码块
+          let j = i + 1;
+          while (j < lines.length && lines[j]!.trim() === "") j++;
+          if (j < lines.length && isCodeCont(lines[j]!) && !/^```/.test(lines[j]!.trim())) {
+            i = j;
+            continue;
+          }
+          break;
+        }
+        if (/^```/.test(cur.trim())) break;
+        if (!isCodeCont(cur)) break;
+        block.push(cur.replace(/\s+$/, ""));
         i++;
       }
+      while (block.length && block[block.length - 1] === "") block.pop();
       if (block.length) {
-        out.push("", `\`\`\`${allEnv ? "env" : ""}`, ...block, "```", "");
+        out.push("", `\`\`\`env`, ...block, "```", "");
         continue;
       }
     }
