@@ -176,7 +176,10 @@ export function closeUnclosedFences(text: string): string {
 
 /** 主入口：把粘贴文本规范化为 Markdown */
 export function normalizePastedText(text: string): string {
-  const raw = text.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
+  const raw = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u2028\u2029]/g, "\n")
+    .replace(/\u00a0/g, " ");
   let lines = mergeBrokenLines(raw.split("\n"));
   lines = lines.map((l) => {
     if (/^\s/.test(l) || /^```/.test(l.trim())) return l;
