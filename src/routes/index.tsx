@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderWeixinHtml } from "@/lib/md2wx";
-import { normalizeClipboard } from "@/lib/paste-normalize";
+import { closeUnclosedFences, normalizeClipboard } from "@/lib/paste-normalize";
 import {
   BUILTIN_THEMES,
   loadCustomThemes,
@@ -104,7 +104,7 @@ function Editor() {
   const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0]!;
   const html = useMemo(() => {
     try {
-      return renderWeixinHtml(markdown, theme);
+      return renderWeixinHtml(closeUnclosedFences(markdown), theme);
     } catch (e) {
       return `<p>渲染出错：${(e as Error).message}</p>`;
     }
@@ -119,12 +119,14 @@ function Editor() {
     const ta = taRef.current;
     if (!ta) return;
     const { selectionStart: s, selectionEnd: e, value } = ta;
+    const scroll = ta.scrollTop;
     const sel = value.slice(s, e) || placeholder;
     const next = value.slice(0, s) + before + sel + after + value.slice(e);
     setMarkdown(next);
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(s + before.length, s + before.length + sel.length);
+      ta.scrollTop = scroll;
     });
   }, []);
 
@@ -132,6 +134,7 @@ function Editor() {
     const ta = taRef.current;
     if (!ta) return;
     const { selectionStart: s, selectionEnd: e, value } = ta;
+    const scroll = ta.scrollTop;
     const start = value.lastIndexOf("\n", s - 1) + 1;
     const end = value.indexOf("\n", e) === -1 ? value.length : value.indexOf("\n", e);
     const original = value.slice(start, end);
@@ -145,6 +148,7 @@ function Editor() {
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(Math.max(start, s + firstLineDelta), Math.max(start, e + delta));
+      ta.scrollTop = scroll;
     });
   }, []);
 
