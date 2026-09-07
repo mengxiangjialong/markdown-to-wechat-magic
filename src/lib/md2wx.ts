@@ -4,8 +4,18 @@ import type { Theme } from "./theme";
 /** 把 Markdown 渲染成带内联样式的公众号 HTML */
 export function renderWeixinHtml(markdown: string, theme: Theme): string {
   const md = createMarked(theme);
-  const body = expandContainers(markdown, theme, md);
+  const body = expandContainers(mergeLeadingColons(markdown), theme, md);
   return `<section style="${theme.styles.container}">${body}</section>`;
+}
+
+/** 围栏代码之外，把被换行拆开的中英文冒号接回上一行。 */
+function mergeLeadingColons(markdown: string): string {
+  return markdown
+    .split(/(```[\s\S]*?(?:```|$))/g)
+    .map((segment, index) =>
+      index % 2 === 1 ? segment : segment.replace(/([^\n])[\t 　]*\n+[\t 　]*(?=[：:])/g, "$1"),
+    )
+    .join("");
 }
 
 /**
