@@ -162,7 +162,16 @@ function fenceCodeBlocks(lines: string[]): string[] {
     out.push(line);
     i++;
   }
+  // 围栏未闭合时自动补上结尾
+  if (inFence) out.push("```");
   return out;
+}
+
+/** 全文围栏配平：奇数个 ``` 时补一个结尾 */
+export function closeUnclosedFences(text: string): string {
+  const count = text.split("\n").filter((l) => /^\s*```/.test(l)).length;
+  if (count % 2 === 0) return text;
+  return `${text.replace(/\s*$/, "")}\n\`\`\`\n`;
 }
 
 /** 主入口：把粘贴文本规范化为 Markdown */
