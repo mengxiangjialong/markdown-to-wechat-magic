@@ -196,17 +196,20 @@ export function normalizePastedText(text: string): string {
   return closeUnclosedFences(mergePunctOutsideFences(joined)).replace(/\n{3,}/g, "\n\n");
 }
 
-/** 兜底：围栏之外，行首标点接回上一行 */
+/** 兜底：围栏之外，行首标点接回上一行；冒号结尾的行也接住下一行 */
 function mergePunctOutsideFences(text: string): string {
   return text
     .split(/(```[\s\S]*?```)/g)
     .map((seg, idx) =>
       idx % 2 === 1
         ? seg
-        : seg.replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1"),
+        : seg
+            .replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1")
+            .replace(/([：:])[ \t　]*\n+[ \t　]*(?=[^\s#>|*`+\-])/g, "$1"),
     )
     .join("");
 }
+
 
 /** 从剪贴板事件里取出规范化后的 Markdown */
 export function normalizeClipboard(e: ClipboardEvent | React.ClipboardEvent): string {

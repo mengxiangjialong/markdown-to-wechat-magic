@@ -8,15 +8,22 @@ export function renderWeixinHtml(markdown: string, theme: Theme): string {
   return `<section style="${theme.styles.container}">${body}</section>`;
 }
 
-/** 围栏代码之外，把被换行拆开的中英文冒号接回上一行。 */
+/** 围栏代码之外，把被换行拆开的中英文冒号接回同一行（冒号前后都不换行）。 */
 function mergeLeadingColons(markdown: string): string {
   return markdown
     .split(/(```[\s\S]*?(?:```|$))/g)
     .map((segment, index) =>
-      index % 2 === 1 ? segment : segment.replace(/([^\n])[\t 　]*\n+[\t 　]*(?=[：:])/g, "$1"),
+      index % 2 === 1
+        ? segment
+        : segment
+            // 「文字 \n ：说明」-> 「文字：说明」
+            .replace(/([^\n])[\t 　]*\n+[\t 　]*(?=[：:])/g, "$1")
+            // 「文字： \n 说明」-> 「文字：说明」
+            .replace(/([：:])[\t 　]*\n+[\t 　]*(?=[^\s#>|*`+\-])/g, "$1"),
     )
     .join("");
 }
+
 
 /**
  * 基于 token 树渲染（this.parser.parseInline / this.parser.parse），
