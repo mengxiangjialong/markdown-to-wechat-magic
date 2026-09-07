@@ -58,7 +58,7 @@ function mergeBrokenLines(lines: string[]): string[] {
       continue;
     }
     // 代码行（含括号收尾、缩进、注释）不参与合并，避免破坏代码块
-    if (isCodeish(line) || isCodeish(prev)) {
+    if (!startsWithPunct(line.trim()) && (isCodeish(line) || isCodeish(prev))) {
       out.push(line);
       continue;
     }
