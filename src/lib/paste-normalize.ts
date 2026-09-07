@@ -58,7 +58,7 @@ function mergeBrokenLines(lines: string[]): string[] {
       continue;
     }
     // 代码行（含括号收尾、缩进、注释）不参与合并，避免破坏代码块
-    if (isCodeish(line) || isCodeish(prev)) {
+    if (!startsWithPunct(line.trim()) && (isCodeish(line) || isCodeish(prev))) {
       out.push(line);
       continue;
     }
@@ -162,12 +162,24 @@ function fenceCodeBlocks(lines: string[]): string[] {
     out.push(line);
     i++;
   }
+  // 围栏未闭合时自动补上结尾
+  if (inFence) out.push("```");
   return out;
+}
+
+/** 全文围栏配平：奇数个 ``` 时补一个结尾 */
+export function closeUnclosedFences(text: string): string {
+  const count = text.split("\n").filter((l) => /^\s*```/.test(l)).length;
+  if (count % 2 === 0) return text;
+  return `${text.replace(/\s*$/, "")}\n\`\`\`\n`;
 }
 
 /** 主入口：把粘贴文本规范化为 Markdown */
 export function normalizePastedText(text: string): string {
-  const raw = text.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
+  const raw = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u2028\u2029]/g, "\n")
+    .replace(/\u00a0/g, " ");
   let lines = mergeBrokenLines(raw.split("\n"));
   lines = lines.map((l) => {
     if (/^\s/.test(l) || /^```/.test(l.trim())) return l;
@@ -180,7 +192,20 @@ export function normalizePastedText(text: string): string {
     if (/^#{1,6}\s/.test(l) && spaced.length && spaced[spaced.length - 1] !== "") spaced.push("");
     spaced.push(l);
   }
-  return spaced.join("\n").replace(/\n{3,}/g, "\n\n");
+  const joined = spaced.join("\n").replace(/\n{3,}/g, "\n\n");
+  return closeUnclosedFences(mergePunctOutsideFences(joined)).replace(/\n{3,}/g, "\n\n");
+}
+
+/** 兜底：围栏之外，行首标点接回上一行 */
+function mergePunctOutsideFences(text: string): string {
+  return text
+    .split(/(```[\s\S]*?```)/g)
+    .map((seg, idx) =>
+      idx % 2 === 1
+        ? seg
+        : seg.replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1"),
+    )
+    .join("");
 }
 
 /** 从剪贴板事件里取出规范化后的 Markdown */
