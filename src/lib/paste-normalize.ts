@@ -192,7 +192,20 @@ export function normalizePastedText(text: string): string {
     if (/^#{1,6}\s/.test(l) && spaced.length && spaced[spaced.length - 1] !== "") spaced.push("");
     spaced.push(l);
   }
-  return spaced.join("\n").replace(/\n{3,}/g, "\n\n");
+  const joined = spaced.join("\n").replace(/\n{3,}/g, "\n\n");
+  return closeUnclosedFences(mergePunctOutsideFences(joined)).replace(/\n{3,}/g, "\n\n");
+}
+
+/** 兜底：围栏之外，行首标点接回上一行 */
+function mergePunctOutsideFences(text: string): string {
+  return text
+    .split(/(```[\s\S]*?```)/g)
+    .map((seg, idx) =>
+      idx % 2 === 1
+        ? seg
+        : seg.replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1"),
+    )
+    .join("");
 }
 
 /** 从剪贴板事件里取出规范化后的 Markdown */
