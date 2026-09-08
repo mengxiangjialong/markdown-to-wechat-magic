@@ -10,6 +10,7 @@ export type StyleKey =
   | "ul"
   | "ol"
   | "li"
+  | "liMarker"
   | "blockquote"
   | "code"
   | "pre"
