@@ -138,13 +138,24 @@ export function buildStyles(c: ThemeConfig): Styles {
     strong: css({ color: c.primary, fontWeight: "bold" }),
     em: css({ fontStyle: "italic", color: "#71717a" }),
     a: css({ color: c.accent, textDecoration: "none", borderBottom: `1px solid ${c.accent}66` }),
-    ul: css({ margin: "0 0 14px 0", paddingLeft: "22px", listStyle: "disc" }),
-    ol: css({ margin: "0 0 14px 0", paddingLeft: "22px", listStyle: "decimal" }),
+    // 列表不再使用原生 ul/ol/li（公众号编辑器会把条目拆行），改为 section + 挂在左侧的项目符号
+    ul: css({ margin: "0 0 14px 0", padding: "0" }),
+    ol: css({ margin: "0 0 14px 0", padding: "0" }),
     li: css({
       margin: "0 0 6px 0",
+      paddingLeft: "1.6em",
       fontSize: `${fs}px`,
       lineHeight: `${lh}`,
       color: text,
+      wordBreak: "break-word",
+    }),
+    liMarker: css({
+      display: "inline-block",
+      width: "1.6em",
+      marginLeft: "-1.6em",
+      textAlign: "center",
+      color: c.primary,
+      fontWeight: "bold",
     }),
     blockquote: css({
       margin: "0 0 16px 0",
