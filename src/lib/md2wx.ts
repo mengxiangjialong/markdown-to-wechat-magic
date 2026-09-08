@@ -64,19 +64,36 @@ function createMarked(theme: Theme): Marked {
     blockquote({ tokens }: Tokens.Blockquote) {
       return `<blockquote style="${s.blockquote}">${this.parser.parse(tokens)}</blockquote>`;
     },
+    /**
+     * 公众号编辑器粘贴 <ul>/<li> 时会把列表项里的 <strong>、冒号、说明文字拆成多行。
+     * 这里不再输出原生列表，而是每个条目渲染成一个 section：
+     * 项目符号用负外边距挂在左侧，条目正文整体包在一个 span 里，保证同一行不被拆开。
+     */
     list(token: Tokens.List) {
-      const tag = token.ordered ? "ol" : "ul";
       const style = token.ordered ? s.ol : s.ul;
+      const start = typeof token.start === "number" ? token.start : 1;
       const items = token.items
-        .map((item) => {
-          const inner = this.parser
-            .parse(item.tokens)
-            .replace(/^<p style="[^"]*">/, "")
-            .replace(/<\/p>\s*$/, "");
-          return `<li style="${s.li}">${inner}</li>`;
+        .map((item, index) => {
+          const marker = token.ordered ? `${start + index}.` : "•";
+          // 首个 block 的内联内容作为条目正文，其余（嵌套列表、多段落等）跟在后面
+          const [first, ...rest] = item.tokens;
+          const firstHtml =
+            first && (first.type === "paragraph" || first.type === "text")
+              ? this.parser.parseInline((first as Tokens.Paragraph).tokens ?? [])
+              : first
+                ? this.parser.parse([first])
+                : "";
+          const restHtml = rest.length ? this.parser.parse(rest) : "";
+          return (
+            `<section style="${s.li}">` +
+            `<span style="${s.liMarker}">${marker}</span>` +
+            `<span style="white-space:normal">${firstHtml}</span>` +
+            restHtml +
+            `</section>`
+          );
         })
         .join("");
-      return `<${tag} style="${style}">${items}</${tag}>`;
+      return `<section style="${style}">${items}</section>`;
     },
     image({ href, text }: Tokens.Image) {
       return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text ?? "")}" style="${s.img}"/>`;
