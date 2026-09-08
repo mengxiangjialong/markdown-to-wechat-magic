@@ -16,6 +16,8 @@ function mergeLeadingColons(markdown: string): string {
       index % 2 === 1
         ? segment
         : segment
+            // 「- 文字 \n - ：说明」-> 「- 文字：说明」（冒号被拆成独立列表项）
+            .replace(/([^\n])[\t 　]*\n+[\t 　]*(?:[*+-]|\d+[.)])[\t 　]+(?=[：:])/g, "$1")
             // 「文字 \n ：说明」-> 「文字：说明」
             .replace(/([^\n])[\t 　]*\n+[\t 　]*(?=[：:])/g, "$1")
             // 「文字： \n 说明」-> 「文字：说明」
