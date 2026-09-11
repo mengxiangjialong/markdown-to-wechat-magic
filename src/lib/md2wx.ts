@@ -41,7 +41,10 @@ function createMarked(theme: Theme): Marked {
       if (depth === 1) return `<h1 style="${s.h1}">${text}</h1>`;
       if (depth === 2)
         return `<section style="margin:34px 0 18px 0"><h2 style="${s.h2}">${text}</h2></section>`;
-      return `<h3 style="${s.h3}">${text}</h3>`;
+      if (depth === 3) return `<h3 style="${s.h3}">${text}</h3>`;
+      if (depth === 4) return `<h4 style="${s.h4}">${text}</h4>`;
+      if (depth === 5) return `<h5 style="${s.h5}">${text}</h5>`;
+      return `<h6 style="${s.h6}">${text}</h6>`;
     },
     paragraph({ tokens }: Tokens.Paragraph) {
       return `<p style="${s.p}">${this.parser.parseInline(tokens)}</p>`;
