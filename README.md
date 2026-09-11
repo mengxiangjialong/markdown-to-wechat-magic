@@ -60,7 +60,8 @@ npm run build
 
 ## 运行结果
 
-![image-20260911220605210](C:\Users\ylw11\AppData\Roaming\Typora\typora-user-images\image-20260911220605210.png)
+<img width="1901" height="819" alt="image" src="https://github.com/user-attachments/assets/25882727-8527-43ad-9603-647e10226484" />
+
 
 
 Continue developing this project in the [Lovable editor](https://lovable.dev/projects/069a67a5-31e8-408e-8c74-801734f4f816).
