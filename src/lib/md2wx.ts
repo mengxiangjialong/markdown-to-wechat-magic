@@ -55,6 +55,19 @@ function createMarked(theme: Theme): Marked {
     link({ href, tokens }: Tokens.Link) {
       return `<a href="${escapeHtml(href)}" style="${s.a}">${this.parser.parseInline(tokens)}</a>`;
     },
+    /**
+     * 公众号编辑器会把「行内元素后面紧跟的裸文字」提升成独立块，导致
+     * 「**线程池**：实现简单」被拆成两行。给每段裸文字包一个带 style 的
+     * span（无属性的 span 会被编辑器剥掉），强制留在同一行。
+     */
+    text(token: Tokens.Text | Tokens.Escape) {
+      const inner =
+        "tokens" in token && token.tokens?.length
+          ? this.parser.parseInline(token.tokens)
+          : (token as Tokens.Text).text;
+      if (!inner) return "";
+      return `<span style="display:inline;white-space:normal">${inner}</span>`;
+    },
     codespan({ text }: Tokens.Codespan) {
       return `<code style="${s.code}">${escapeHtml(text)}</code>`;
     },
@@ -87,7 +100,7 @@ function createMarked(theme: Theme): Marked {
           return (
             `<section style="${s.li}">` +
             `<span style="${s.liMarker}">${marker}</span>` +
-            `<span style="white-space:normal">${firstHtml}</span>` +
+            `<span style="display:inline;white-space:normal">${firstHtml}</span>` +
             restHtml +
             `</section>`
           );
