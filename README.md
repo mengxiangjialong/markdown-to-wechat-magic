@@ -58,4 +58,9 @@ npm run build
 
 ## Build with Lovable
 
+## 运行结果
+
+![image-20260911220605210](C:\Users\ylw11\AppData\Roaming\Typora\typora-user-images\image-20260911220605210.png)
+
+
 Continue developing this project in the [Lovable editor](https://lovable.dev/projects/069a67a5-31e8-408e-8c74-801734f4f816).
