@@ -101,6 +101,9 @@ const ENV_LINE = /^[A-Z][A-Z0-9_]{2,}\s*=/;
 /** 代码块内部的延续行：括号收尾、注释、字符串项、以逗号/开括号结尾 */
 const CODE_CONT = /^([)\]}][;,)\]}]*$|#\s|\/\/|["'`].*[,:]?$|.*[,({[]$|@\w)/;
 
+/** 代码语句开始后，以下行即使不缩进也应留在同一代码块中。 */
+const CODE_BODY = /^(?:#.*|\/\/.*|[A-Za-z_$][\w.$]*\s*(?:=|\()|[A-Za-z_$][\w.$]*\.(?:invoke|run|call|execute)\s*\(|[A-Za-z_$][\w.$]*\s*=|[)\]}][;,]?)/;
+
 /** 该行看起来像代码（用于起始判断） */
 function isCodeish(line: string): boolean {
   const t = line.trim();
@@ -113,7 +116,17 @@ function isCodeish(line: string): boolean {
 function isCodeCont(line: string): boolean {
   const t = line.trim();
   if (t === "") return false;
-  return isCodeish(line) || CODE_CONT.test(t);
+  return isCodeish(line) || CODE_CONT.test(t) || CODE_BODY.test(t);
+}
+
+function delimiterDelta(line: string): number {
+  const source = line.replace(/(['"])(?:\\.|(?!\1).)*\1/g, "");
+  let delta = 0;
+  for (const char of source) {
+    if (char === "(" || char === "[" || char === "{") delta++;
+    if (char === ")" || char === "]" || char === "}") delta--;
+  }
+  return delta;
 }
 
 /** 连续的代码行自动加围栏（空行不会打断代码块） */
@@ -136,21 +149,28 @@ function fenceCodeBlocks(lines: string[]): string[] {
     }
     if (isCodeish(line)) {
       const block: string[] = [];
+      let delimiterDepth = 0;
       while (i < lines.length) {
         const cur = lines[i]!;
         if (cur.trim() === "") {
           // 向前看：后面若仍是代码，保留空行继续同一个代码块
           let j = i + 1;
           while (j < lines.length && lines[j]!.trim() === "") j++;
-          if (j < lines.length && isCodeCont(lines[j]!) && !/^```/.test(lines[j]!.trim())) {
+          if (
+            j < lines.length &&
+            (delimiterDepth > 0 || isCodeCont(lines[j]!)) &&
+            !/^```/.test(lines[j]!.trim())
+          ) {
+            block.push("");
             i = j;
             continue;
           }
           break;
         }
         if (/^```/.test(cur.trim())) break;
-        if (!isCodeCont(cur)) break;
+        if (!isCodeCont(cur) && delimiterDepth <= 0) break;
         block.push(cur.replace(/\s+$/, ""));
+        delimiterDepth = Math.max(0, delimiterDepth + delimiterDelta(cur));
         i++;
       }
       while (block.length && block[block.length - 1] === "") block.pop();

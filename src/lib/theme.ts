@@ -3,6 +3,9 @@ export type StyleKey =
   | "h1"
   | "h2"
   | "h3"
+  | "h4"
+  | "h5"
+  | "h6"
   | "p"
   | "strong"
   | "em"
@@ -124,6 +127,27 @@ export function buildStyles(c: ThemeConfig): Styles {
     h3: css({
       margin: "11px 0 6px 0",
       fontSize: `${fs + 1}px`,
+      fontWeight: "bold",
+      color: c.primary,
+      lineHeight: "1.45",
+    }),
+    h4: css({
+      margin: "10px 0 6px 0",
+      fontSize: `${fs}px`,
+      fontWeight: "bold",
+      color: c.primary,
+      lineHeight: "1.45",
+    }),
+    h5: css({
+      margin: "9px 0 5px 0",
+      fontSize: `${fs - 1}px`,
+      fontWeight: "bold",
+      color: c.primary,
+      lineHeight: "1.45",
+    }),
+    h6: css({
+      margin: "8px 0 5px 0",
+      fontSize: `${fs - 2}px`,
       fontWeight: "bold",
       color: c.primary,
       lineHeight: "1.45",

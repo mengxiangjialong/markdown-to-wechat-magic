@@ -152,6 +152,55 @@ function Editor() {
     });
   }, []);
 
+  const setHeading = useCallback((depth: number) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const { selectionStart: s, selectionEnd: e, value } = ta;
+    const scroll = ta.scrollTop;
+    const start = value.lastIndexOf("\n", s - 1) + 1;
+    const nextBreak = value.indexOf("\n", e);
+    const end = nextBreak === -1 ? value.length : nextBreak;
+    const original = value.slice(start, end);
+    const prefix = `${"#".repeat(depth)} `;
+    const block = original
+      .split("\n")
+      .map((line) => prefix + line.replace(/^#{1,6}\s+/, ""))
+      .join("\n");
+    const delta = block.length - original.length;
+    setMarkdown(value.slice(0, start) + block + value.slice(end));
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start, Math.max(start, e + delta));
+      ta.scrollTop = scroll;
+    });
+  }, []);
+
+  const setOrderedList = useCallback(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const { selectionStart: s, selectionEnd: e, value } = ta;
+    const scroll = ta.scrollTop;
+    const start = value.lastIndexOf("\n", s - 1) + 1;
+    const nextBreak = value.indexOf("\n", e);
+    const end = nextBreak === -1 ? value.length : nextBreak;
+    const original = value.slice(start, end);
+    const lines = original.split("\n");
+    const allOrdered = lines.every((line) => /^\s*\d+[.)]\s+/.test(line));
+    const block = lines
+      .map((line, index) => {
+        const content = line.replace(/^\s*(?:\d+[.)]|[-+*])\s+/, "");
+        return allOrdered ? content : `${index + 1}. ${content}`;
+      })
+      .join("\n");
+    const delta = block.length - original.length;
+    setMarkdown(value.slice(0, start) + block + value.slice(end));
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start, Math.max(start, e + delta));
+      ta.scrollTop = scroll;
+    });
+  }, []);
+
   const onPaste = useCallback((ev: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const ta = ev.currentTarget;
     const text = normalizeClipboard(ev);
@@ -232,12 +281,18 @@ function Editor() {
   };
 
   const toolbar: [string, () => void][] = [
-    ["H2", () => prefixLines("## ")],
+    ["H1", () => setHeading(1)],
+    ["H2", () => setHeading(2)],
+    ["H3", () => setHeading(3)],
+    ["H4", () => setHeading(4)],
+    ["H5", () => setHeading(5)],
+    ["H6", () => setHeading(6)],
     ["B", () => surround("**")],
     ["I", () => surround("*")],
     ["链接", () => surround("[", "](https://)", "链接文字")],
     ["引用", () => prefixLines("> ")],
-    ["列表", () => prefixLines("- ")],
+    ["无序列表", () => prefixLines("- ")],
+    ["有序列表", setOrderedList],
     ["代码", () => surround("\n```js\n", "\n```\n", "code")],
     ["图片", () => surround("![", "](https://)", "图片说明")],
     ["卡片", () => surround("\n:::card 标题\n", "\n:::\n", "内容")],
