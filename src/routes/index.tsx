@@ -187,6 +187,7 @@ function Editor() {
       .join("\n");
     const delta = block.length - original.length;
     const firstLineDelta = original.startsWith(prefix) ? -prefix.length : prefix.length;
+    pushHistory(value);
     setMarkdown(value.slice(0, start) + block + value.slice(end));
     requestAnimationFrame(() => {
       ta.focus();
