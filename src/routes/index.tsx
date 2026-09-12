@@ -88,6 +88,48 @@ function Editor() {
     headingStyle: "gradient",
   });
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const undoRef = useRef<string[]>([]);
+  const redoRef = useRef<string[]>([]);
+  const lastPushRef = useRef(0);
+
+  const pushHistory = useCallback((prev: string) => {
+    const stack = undoRef.current;
+    if (stack[stack.length - 1] === prev) return;
+    stack.push(prev);
+    if (stack.length > 200) stack.shift();
+    redoRef.current = [];
+    lastPushRef.current = Date.now();
+  }, []);
+
+  const onChangeText = useCallback(
+    (next: string) => {
+      const now = Date.now();
+      if (now - lastPushRef.current > 500) pushHistory(markdown);
+      else lastPushRef.current = now;
+      setMarkdown(next);
+    },
+    [markdown, pushHistory],
+  );
+
+  const undo = useCallback(() => {
+    const prev = undoRef.current.pop();
+    if (prev === undefined) return;
+    setMarkdown((cur) => {
+      redoRef.current.push(cur);
+      return prev;
+    });
+    lastPushRef.current = 0;
+  }, []);
+
+  const redo = useCallback(() => {
+    const next = redoRef.current.pop();
+    if (next === undefined) return;
+    setMarkdown((cur) => {
+      undoRef.current.push(cur);
+      return next;
+    });
+    lastPushRef.current = 0;
+  }, []);
 
   useEffect(() => {
     setCustomThemes(loadCustomThemes());
