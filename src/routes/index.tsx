@@ -164,6 +164,7 @@ function Editor() {
     const scroll = ta.scrollTop;
     const sel = value.slice(s, e) || placeholder;
     const next = value.slice(0, s) + before + sel + after + value.slice(e);
+    pushHistory(value);
     setMarkdown(next);
     requestAnimationFrame(() => {
       ta.focus();
