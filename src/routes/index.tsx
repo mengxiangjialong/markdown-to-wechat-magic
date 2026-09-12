@@ -238,13 +238,14 @@ function Editor() {
       })
       .join("\n");
     const delta = block.length - original.length;
+    pushHistory(value);
     setMarkdown(value.slice(0, start) + block + value.slice(end));
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(start, Math.max(start, e + delta));
       ta.scrollTop = scroll;
     });
-  }, []);
+  }, [pushHistory]);
 
   const onPaste = useCallback((ev: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const ta = ev.currentTarget;
