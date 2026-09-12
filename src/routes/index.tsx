@@ -211,13 +211,14 @@ function Editor() {
       .map((line) => prefix + line.replace(/^#{1,6}\s+/, ""))
       .join("\n");
     const delta = block.length - original.length;
+    pushHistory(value);
     setMarkdown(value.slice(0, start) + block + value.slice(end));
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(start, Math.max(start, e + delta));
       ta.scrollTop = scroll;
     });
-  }, []);
+  }, [pushHistory]);
 
   const setOrderedList = useCallback(() => {
     const ta = taRef.current;
