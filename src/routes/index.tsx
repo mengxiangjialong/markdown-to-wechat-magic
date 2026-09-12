@@ -194,7 +194,7 @@ function Editor() {
       ta.setSelectionRange(Math.max(start, s + firstLineDelta), Math.max(start, e + delta));
       ta.scrollTop = scroll;
     });
-  }, []);
+  }, [pushHistory]);
 
   const setHeading = useCallback((depth: number) => {
     const ta = taRef.current;
