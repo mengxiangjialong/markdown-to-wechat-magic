@@ -253,34 +253,96 @@ function Editor() {
     if (!text) return;
     ev.preventDefault();
     const { selectionStart: s, selectionEnd: e, value } = ta;
+    pushHistory(value);
     setMarkdown(value.slice(0, s) + text + value.slice(e));
     const pos = s + text.length;
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(pos, pos);
     });
-  }, []);
+  }, [pushHistory]);
+
+  const continueList = useCallback(
+    (ta: HTMLTextAreaElement) => {
+      const { selectionStart, selectionEnd, value } = ta;
+      if (selectionStart !== selectionEnd) return false;
+
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const lineEnd = value.indexOf("\n", selectionStart);
+      const end = lineEnd === -1 ? value.length : lineEnd;
+      const line = value.slice(lineStart, end);
+      const ordered = line.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
+      const unordered = line.match(/^(\s*)([-+*])\s+(.*)$/);
+
+      if (!ordered && !unordered) return false;
+
+      pushHistory(value);
+      if (ordered) {
+        const [, indent, number, marker, content] = ordered;
+        if (!content!.trim()) {
+          const extraBreak = lineEnd === -1 ? "\n" : "";
+          setMarkdown(value.slice(0, lineStart) + extraBreak + value.slice(end));
+          const caret = lineStart + extraBreak.length;
+          requestAnimationFrame(() => ta.setSelectionRange(caret, caret));
+          return true;
+        }
+        const nextMarker = `\n${indent}${Number(number) + 1}${marker} `;
+        setMarkdown(value.slice(0, selectionStart) + nextMarker + value.slice(selectionStart));
+        requestAnimationFrame(() =>
+          ta.setSelectionRange(selectionStart + nextMarker.length, selectionStart + nextMarker.length),
+        );
+        return true;
+      }
+
+      const [, indent, marker, content] = unordered!;
+      if (!content!.trim()) {
+        const extraBreak = lineEnd === -1 ? "\n" : "";
+        setMarkdown(value.slice(0, lineStart) + extraBreak + value.slice(end));
+        const caret = lineStart + extraBreak.length;
+        requestAnimationFrame(() => ta.setSelectionRange(caret, caret));
+        return true;
+      }
+      const nextMarker = `\n${indent}${marker} `;
+      setMarkdown(value.slice(0, selectionStart) + nextMarker + value.slice(selectionStart));
+      requestAnimationFrame(() =>
+        ta.setSelectionRange(selectionStart + nextMarker.length, selectionStart + nextMarker.length),
+      );
+      return true;
+    },
+    [pushHistory],
+  );
 
 
   const onKeyDown = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const mod = ev.metaKey || ev.ctrlKey;
-    if (mod && ev.key.toLowerCase() === "b") {
+    const key = ev.key.toLowerCase();
+    if (!mod && key === "enter" && continueList(ev.currentTarget)) {
+      ev.preventDefault();
+    } else if (mod && key === "z") {
+      ev.preventDefault();
+      if (ev.shiftKey) redo();
+      else undo();
+    } else if (mod && key === "y") {
+      ev.preventDefault();
+      redo();
+    } else if (mod && key === "b") {
       ev.preventDefault();
       surround("**");
-    } else if (mod && ev.key.toLowerCase() === "i") {
+    } else if (mod && key === "i") {
       ev.preventDefault();
       surround("*");
-    } else if (mod && ev.key.toLowerCase() === "k") {
-      ev.preventDefault();
-      surround("[", "](https://)", "链接文字");
-    } else if (mod && ev.shiftKey && ev.key.toLowerCase() === "k") {
+    } else if (mod && ev.shiftKey && key === "k") {
       ev.preventDefault();
       const ta = ev.currentTarget;
       const v = ta.value;
       const start = v.lastIndexOf("\n", ta.selectionStart - 1) + 1;
       const endIdx = v.indexOf("\n", ta.selectionStart);
       const end = endIdx === -1 ? v.length : endIdx + 1;
+      pushHistory(v);
       setMarkdown(v.slice(0, start) + v.slice(end));
+    } else if (mod && key === "k") {
+      ev.preventDefault();
+      surround("[", "](https://)", "链接文字");
     } else if (ev.key === "Tab") {
       ev.preventDefault();
       prefixLines("  ");
@@ -290,6 +352,7 @@ function Editor() {
       const v = ta.value;
       const endIdx = v.indexOf("\n", ta.selectionStart);
       const pos = endIdx === -1 ? v.length : endIdx;
+      pushHistory(v);
       setMarkdown(v.slice(0, pos) + "\n\n" + v.slice(pos));
     }
   };
@@ -327,18 +390,10 @@ function Editor() {
   };
 
   const toolbar: [string, () => void][] = [
-    ["H1", () => setHeading(1)],
-    ["H2", () => setHeading(2)],
-    ["H3", () => setHeading(3)],
-    ["H4", () => setHeading(4)],
-    ["H5", () => setHeading(5)],
-    ["H6", () => setHeading(6)],
     ["B", () => surround("**")],
     ["I", () => surround("*")],
     ["链接", () => surround("[", "](https://)", "链接文字")],
     ["引用", () => prefixLines("> ")],
-    ["无序列表", () => prefixLines("- ")],
-    ["有序列表", setOrderedList],
     ["代码", () => surround("\n```js\n", "\n```\n", "code")],
     ["图片", () => surround("![", "](https://)", "图片说明")],
     ["卡片", () => surround("\n:::card 标题\n", "\n:::\n", "内容")],
@@ -445,21 +500,59 @@ function Editor() {
 
       <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-2">
         <section className="flex min-h-0 flex-col border-r border-border">
-          <div className="flex flex-wrap gap-1 border-b border-border px-3 py-2">
-            {toolbar.map(([label, fn]) => (
-              <button
-                key={label}
-                onClick={fn}
-                className="rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          <div className="flex flex-wrap items-center justify-start gap-2 border-b border-border px-3 py-2">
+            <div className="flex items-center gap-1">
+              <select
+                aria-label="标题级别"
+                value=""
+                onChange={(e) => {
+                  const depth = Number(e.target.value);
+                  if (depth) setHeading(depth);
+                }}
+                className="rounded bg-transparent px-2 py-1 text-center text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
-                {label}
-              </button>
-            ))}
+                <option value="" disabled>
+                  标题
+                </option>
+                <option value="1">一级标题</option>
+                <option value="2">二级标题</option>
+                <option value="3">三级标题</option>
+                <option value="4">四级标题</option>
+                <option value="5">五级标题</option>
+                <option value="6">六级标题</option>
+              </select>
+              <select
+                aria-label="列表类型"
+                value=""
+                onChange={(e) => {
+                  if (e.target.value === "unordered") prefixLines("- ");
+                  if (e.target.value === "ordered") setOrderedList();
+                }}
+                className="rounded bg-transparent px-2 py-1 text-center text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <option value="" disabled>
+                  列表
+                </option>
+                <option value="unordered">无序列表</option>
+                <option value="ordered">有序列表</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap justify-start gap-1">
+              {toolbar.map(([label, fn]) => (
+                <button
+                  key={label}
+                  onClick={fn}
+                  className="rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <textarea
             ref={taRef}
             value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
+            onChange={(e) => onChangeText(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             spellCheck={false}
