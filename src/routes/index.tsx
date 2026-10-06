@@ -358,10 +358,37 @@ function Editor() {
   };
 
   const copyHtml = async () => {
+    const plainText = new DOMParser().parseFromString(html, "text/html").body.textContent ?? "";
+    const copyWithEvent = () => {
+      const onCopy = (event: ClipboardEvent) => {
+        if (!event.clipboardData) return;
+        event.preventDefault();
+        event.clipboardData.setData("text/html", html);
+        event.clipboardData.setData("text/plain", plainText);
+      };
+      document.addEventListener("copy", onCopy);
+      try {
+        return document.execCommand("copy");
+      } finally {
+        document.removeEventListener("copy", onCopy);
+      }
+    };
     try {
-      // 与参考实现保持一致：以纯文本方式复制 HTML 源码，
-      // 公众号编辑器粘贴时会重新解析标记，列表与内联样式不易被拆行。
-      await navigator.clipboard.writeText(html);
+      // 富文本目标读取内联样式 HTML，纯文本目标只读取文章文字，而非源码。
+      if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              "text/html": new Blob([html], { type: "text/html" }),
+              "text/plain": new Blob([plainText], { type: "text/plain" }),
+            }),
+          ]);
+        } catch {
+          if (!copyWithEvent()) throw new Error("Clipboard copy failed");
+        }
+      } else if (!copyWithEvent()) {
+        throw new Error("Clipboard copy unavailable");
+      }
       flash("已复制，去公众号编辑器粘贴吧");
     } catch {
       flash("复制失败，请手动全选复制");
