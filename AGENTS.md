@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Copy article content as both `text/html` with inline styles and `text/plain` with readable article text; use a copy-event fallback so rich-text editors never receive HTML source as plain text.
