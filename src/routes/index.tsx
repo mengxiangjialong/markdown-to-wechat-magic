@@ -359,16 +359,12 @@ function Editor() {
 
   const copyHtml = async () => {
     try {
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "text/html": new Blob([html], { type: "text/html" }),
-          "text/plain": new Blob([html], { type: "text/plain" }),
-        }),
-      ]);
+      // 与参考实现保持一致：以纯文本方式复制 HTML 源码，
+      // 公众号编辑器粘贴时会重新解析标记，列表与内联样式不易被拆行。
+      await navigator.clipboard.writeText(html);
       flash("已复制，去公众号编辑器粘贴吧");
     } catch {
-      await navigator.clipboard.writeText(html);
-      flash("已复制 HTML 源码");
+      flash("复制失败，请手动全选复制");
     }
   };
 
