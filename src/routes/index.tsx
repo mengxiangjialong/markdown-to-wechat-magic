@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderWeixinHtml } from "@/lib/md2wx";
+import { normalizeHeadings } from "@/lib/headings";
 import { closeUnclosedFences, normalizeClipboard } from "@/lib/paste-normalize";
 import {
   BUILTIN_THEMES,
@@ -146,7 +147,7 @@ function Editor() {
   const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0]!;
   const html = useMemo(() => {
     try {
-      return renderWeixinHtml(closeUnclosedFences(markdown), theme);
+      return renderWeixinHtml(normalizeHeadings(closeUnclosedFences(markdown)), theme);
     } catch (e) {
       return `<p>渲染出错：${(e as Error).message}</p>`;
     }
@@ -212,7 +213,10 @@ function Editor() {
       .join("\n");
     const delta = block.length - original.length;
     pushHistory(value);
-    setMarkdown(value.slice(0, start) + block + value.slice(end));
+    const raw = value.slice(0, start) + block + value.slice(end);
+    const fixed = normalizeHeadings(raw);
+    if (fixed !== raw) flash("已自动调整：全文仅允许一个一级标题，且标题不可跨级");
+    setMarkdown(fixed);
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(start, Math.max(start, e + delta));
@@ -254,7 +258,7 @@ function Editor() {
     ev.preventDefault();
     const { selectionStart: s, selectionEnd: e, value } = ta;
     pushHistory(value);
-    setMarkdown(value.slice(0, s) + text + value.slice(e));
+    setMarkdown(normalizeHeadings(value.slice(0, s) + text + value.slice(e)));
     const pos = s + text.length;
     requestAnimationFrame(() => {
       ta.focus();
