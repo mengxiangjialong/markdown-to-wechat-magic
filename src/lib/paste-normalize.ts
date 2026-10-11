@@ -106,7 +106,11 @@ const CODE_BODY = /^(?:#.*|\/\/.*|[A-Za-z_$][\w.$]*\s*(?:=|\()|[A-Za-z_$][\w.$]*
 
 /** 该行看起来像代码（用于起始判断） */
 function isProse(t: string): boolean {
-  return /^[\u3400-\u9fff\uff00-\uffef]/.test(t) || /[。！？；]$/.test(t);
+  if (/^[\u3400-\u9fff\uff00-\uffef]/.test(t) || /[。！？；]$/.test(t)) return true;
+  // 含中文、但不是注释/字符串/赋值/调用的行，视为正文
+  if (/[\u3400-\u9fff]/.test(t) && !/^(#|\/\/|["'`@])/.test(t) && !/[=(){}[\]]/.test(t)) return true;
+  // 纯英文句子：多个单词、以句号结尾、无代码符号
+  return /^[A-Za-z][A-Za-z' ,-]+\s[A-Za-z' ,-]+[.:]$/.test(t) && t.split(" ").length >= 4;
 }
 
 function isCodeish(line: string): boolean {
