@@ -105,9 +105,14 @@ const CODE_CONT = /^([)\]}][;,)\]}]*$|#\s|\/\/|["'`].*[,:]?$|.*[,({[]$|@\w)/;
 const CODE_BODY = /^(?:#.*|\/\/.*|[A-Za-z_$][\w.$]*\s*(?:=|\()|[A-Za-z_$][\w.$]*\.(?:invoke|run|call|execute)\s*\(|[A-Za-z_$][\w.$]*\s*=|[)\]}][;,]?)/;
 
 /** 该行看起来像代码（用于起始判断） */
+function isProse(t: string): boolean {
+  return /^[\u3400-\u9fff\uff00-\uffef]/.test(t) || /[。！？；]$/.test(t);
+}
+
 function isCodeish(line: string): boolean {
   const t = line.trim();
   if (t === "") return false;
+  if (isProse(t)) return false;
   if (/^#/.test(t)) return false;
   return ENV_LINE.test(t) || CODE_HINT.test(line);
 }
@@ -116,6 +121,7 @@ function isCodeish(line: string): boolean {
 function isCodeCont(line: string): boolean {
   const t = line.trim();
   if (t === "") return false;
+  if (isProse(t)) return false;
   return isCodeish(line) || CODE_CONT.test(t) || CODE_BODY.test(t);
 }
 
@@ -201,10 +207,6 @@ export function normalizePastedText(text: string): string {
     .replace(/[\u2028\u2029]/g, "\n")
     .replace(/\u00a0/g, " ");
   let lines = mergeBrokenLines(raw.split("\n"));
-  lines = lines.map((l) => {
-    if (/^\s/.test(l) || /^```/.test(l.trim())) return l;
-    return toHeading(l) ?? l;
-  });
   lines = fenceCodeBlocks(lines);
   // 标题前后留空行
   const spaced: string[] = [];
