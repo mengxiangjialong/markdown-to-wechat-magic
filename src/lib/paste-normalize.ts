@@ -195,8 +195,22 @@ function fenceCodeBlocks(lines: string[]): string[] {
 
 /** 全文围栏配平：奇数个 ``` 时补一个结尾 */
 export function closeUnclosedFences(text: string): string {
-  const count = text.split("\n").filter((l) => /^\s*```/.test(l)).length;
-  if (count % 2 === 0) return text;
+  const lines = text.split("\n");
+  let open = -1;
+  lines.forEach((l, i) => {
+    if (/^\s*```/.test(l)) open = open === -1 ? i : -1;
+  });
+  if (open === -1) return text;
+  // 未闭合：在第一段正文（空行后以中文开头/句号结尾的行）之前补上结尾
+  for (let i = open + 1; i < lines.length; i++) {
+    const t = lines[i]!.trim();
+    if (t && isProse(t) && !/^[#\/]/.test(t) && (i === 0 || lines[i - 1]!.trim() === "")) {
+      let j = i;
+      while (j > open + 1 && lines[j - 1]!.trim() === "") j--;
+      lines.splice(j, 0, "```", "");
+      return lines.join("\n");
+    }
+  }
   return `${text.replace(/\s*$/, "")}\n\`\`\`\n`;
 }
 
