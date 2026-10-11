@@ -204,8 +204,15 @@ export function repairFences(text: string): string {
   const out: string[] = [];
   let inFence = false;
   const glued = new RegExp(`^(${LANGS})(?=[@A-Za-z_<{\\[#][^\\s]*)`);
-  for (const raw of text.split("\n")) {
+  const all = text.split("\n");
+  for (let idx = 0; idx < all.length; idx++) {
+    const raw = all[idx]!;
     const t = raw.trim();
+    if (t === "```" && !inFence) {
+      // 孤立的收尾围栏（其代码块已被提前闭合）：后面没有内容或是正文则丢弃
+      const next = all.slice(idx + 1).find((l) => l.trim() !== "");
+      if (next === undefined || isProse(next.trim())) continue;
+    }
     if (/^```/.test(t)) {
       inFence = !inFence;
       out.push(raw);
