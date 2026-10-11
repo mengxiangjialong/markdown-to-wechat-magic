@@ -108,7 +108,7 @@ const CODE_BODY = /^(?:#.*|\/\/.*|[A-Za-z_$][\w.$]*\s*(?:=|\()|[A-Za-z_$][\w.$]*
 function isProse(t: string): boolean {
   if (/^[\u3400-\u9fff\uff00-\uffef]/.test(t) || /[。！？；]$/.test(t)) return true;
   // 含中文、但不是注释/字符串/赋值/调用的行，视为正文
-  if (/[\u3400-\u9fff]/.test(t) && !/^(#|\/\/|["'`@])/.test(t) && !/[=(){}[\]]/.test(t)) return true;
+  if (/[\u3400-\u9fff]/.test(t) && !/^(#|\/\/|["'`])/.test(t) && !/[=(){}[\]]/.test(t)) return true;
   // 纯英文句子：多个单词、以句号结尾、无代码符号
   return /^[A-Za-z][A-Za-z' ,-]+\s[A-Za-z' ,-]+[.:]$/.test(t) && t.split(" ").length >= 4;
 }
@@ -198,7 +198,40 @@ function fenceCodeBlocks(lines: string[]): string[] {
 }
 
 /** 全文围栏配平：奇数个 ``` 时补一个结尾 */
+const LANGS = "Java|JavaScript|TypeScript|Python|YAML|JSON|XML|SQL|Bash|Shell|Go|Kotlin|HTML|CSS|Properties|Dockerfile|Rust|C\\+\\+";
+/** 逐个围栏修复：语言名粘在代码前的补围栏；代码块遇到正文行时自动闭合 */
+export function repairFences(text: string): string {
+  const out: string[] = [];
+  let inFence = false;
+  const glued = new RegExp(`^(${LANGS})(?=[@A-Za-z_<{\\[#][^\\s]*)`);
+  for (const raw of text.split("\n")) {
+    const t = raw.trim();
+    if (/^```/.test(t)) {
+      inFence = !inFence;
+      out.push(raw);
+      continue;
+    }
+    if (inFence) {
+      if (t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t)) {
+        inFence = false;
+        out.push("```", "");
+      }
+      out.push(raw);
+      continue;
+    }
+    const m = !/^\s/.test(raw) ? raw.match(glued) : null;
+    if (m && !/^[A-Za-z]+\s/.test(raw)) {
+      out.push("", "```" + m[1]!.toLowerCase(), raw.slice(m[1]!.length));
+      inFence = true;
+      continue;
+    }
+    out.push(raw);
+  }
+  return out.join("\n");
+}
+
 export function closeUnclosedFences(text: string): string {
+  text = repairFences(text);
   const lines = text.split("\n");
   let open = -1;
   lines.forEach((l, i) => {
