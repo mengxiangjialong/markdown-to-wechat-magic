@@ -88,6 +88,7 @@ function Editor() {
     accent: "#c084fc",
     headingStyle: "gradient",
   });
+  const [localImages, setLocalImages] = useState<Record<string, string>>({});
   const taRef = useRef<HTMLTextAreaElement>(null);
   const undoRef = useRef<string[]>([]);
   const redoRef = useRef<string[]>([]);
@@ -147,11 +148,33 @@ function Editor() {
   const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0]!;
   const html = useMemo(() => {
     try {
-      return renderWeixinHtml(normalizeHeadings(closeUnclosedFences(markdown)), theme);
+      let out = renderWeixinHtml(normalizeHeadings(closeUnclosedFences(markdown)), theme);
+      for (const [id, url] of Object.entries(localImages)) out = out.split(`local-image:${id}`).join(url);
+      return out;
     } catch (e) {
       return `<p>渲染出错：${(e as Error).message}</p>`;
     }
-  }, [markdown, theme]);
+  }, [markdown, theme, localImages]);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const uploadImages = (files: FileList | null) => {
+    if (!files) return;
+    Array.from(files).forEach((f) => {
+      if (!f.type.startsWith("image/")) return;
+      const r = new FileReader();
+      r.onload = () => {
+        const id = String(Date.now() + Math.floor(Math.random() * 1000));
+        setLocalImages((m) => ({ ...m, [id]: String(r.result) }));
+        const ta = taRef.current;
+        const name = f.name.replace(/\.[^.]+$/, "").replace(/[\[\]()]/g, "");
+        const md = `\n![${name}](local-image:${id})\n`;
+        const pos = ta ? ta.selectionEnd : markdown.length;
+        setMarkdown((v) => v.slice(0, pos) + md + v.slice(pos));
+      };
+      r.readAsDataURL(f);
+    });
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const flash = (msg: string) => {
     setStatus(msg);
@@ -423,6 +446,7 @@ function Editor() {
     ["引用", () => prefixLines("> ")],
     ["代码", () => surround("\n```js\n", "\n```\n", "code")],
     ["图片", () => surround("![", "](https://)", "图片说明")],
+    ["上传图", () => fileRef.current?.click()],
     ["卡片", () => surround("\n:::card 标题\n", "\n:::\n", "内容")],
     ["提示", () => surround("\n:::tip 小提示\n", "\n:::\n", "内容")],
     ["分隔", () => surround("\n:::divider · · ·\n", "", "")],
@@ -430,6 +454,7 @@ function Editor() {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
+      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => uploadImages(e.target.files)} />
       <header className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3">
         <h1 className="text-base font-bold tracking-tight">
           WeChat<span className="text-primary">-article</span>
