@@ -99,12 +99,14 @@ const CODE_HINT =
   /^(\s{2,}|\t|\$ |npm |yarn |pnpm |bun |pip |curl |git |from |import |export |const |let |var |function |class |def |public |private |return |if [({]|for [({]|<\/?[a-z]|[\w.]+\(.*\)[;,]?$|[\w.[\]"']+\s*=\s*.+$)/;
 const ENV_LINE = /^[A-Z][A-Z0-9_]{2,}\s*=/;
 /** HTTP 请求行（如 GET /products/_search）与单独的开括号，视为代码起点 */
-const HTTP_OR_BRACE = /^(?:(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s+\/\S*|[{[])\s*$/;
+const HTTP_OR_BRACE = /^(?:(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s+\/\S*|[{[]|[{[].*["'\d\]}]\s*[:：,].*[}\]][,;]?)\s*$/;
+/** JSON / YAML 风格的键值行：key: value、"key": value */
+const KEY_VALUE = /^["']?[A-Za-z_$][\w$.-]*["']?\s*[:：]\s*\S/;
 /** 「正文：GET /x」「正文：{」拆成正文行 + 代码行 */
 function splitProseCode(lines: string[]): string[] {
   const out: string[] = [];
   for (const l of lines) {
-    const m = l.match(/^(.*[\u3400-\u9fff].*?[：:])[ \t　]*((?:GET|POST|PUT|DELETE|PATCH|HEAD)\s+\/\S*|[{[])\s*$/);
+    const m = l.match(/^(.*?[\u3400-\u9fff][^{[]*?[：:])[ \t　]*((?:GET|POST|PUT|DELETE|PATCH|HEAD)\s+\/\S*|[{[]|[{[].*[}\]])\s*$/);
     if (m) out.push(m[1]!, m[2]!);
     else out.push(l);
   }
@@ -122,7 +124,7 @@ function isProse(t: string): boolean {
   if (/^>/.test(t)) return true;
   if (/^[\u3400-\u9fff\uff00-\uffef]/.test(t) || /[。！？；]$/.test(t)) return true;
   // 含中文、但不是注释/字符串/赋值/调用的行，视为正文
-  if (/[\u3400-\u9fff]/.test(t) && !/^(#|\/\/|["'`])/.test(t) && !/[=(){}[\]]/.test(t)) return true;
+  if (/[\u3400-\u9fff]/.test(t) && !/^(#|\/\/|["'`])/.test(t) && !/[=(){}[\]]/.test(t) && !KEY_VALUE.test(t)) return true;
   // 纯英文句子：多个单词、以句号结尾、无代码符号
   return /^[A-Za-z][A-Za-z' ,-]+\s[A-Za-z' ,-]+[.:]$/.test(t) && t.split(" ").length >= 4;
 }
@@ -140,7 +142,7 @@ function isCodeCont(line: string): boolean {
   const t = line.trim();
   if (t === "") return false;
   if (isProse(t)) return false;
-  return isCodeish(line) || CODE_CONT.test(t) || CODE_BODY.test(t);
+  return isCodeish(line) || CODE_CONT.test(t) || CODE_BODY.test(t) || KEY_VALUE.test(t);
 }
 
 function delimiterDelta(line: string): number {
