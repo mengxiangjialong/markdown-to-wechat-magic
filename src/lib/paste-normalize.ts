@@ -96,7 +96,7 @@ function toHeading(line: string): string | null {
 }
 
 const CODE_HINT =
-  /^(\s{2,}|\t|[$>] |npm |yarn |pnpm |bun |pip |curl |git |from |import |export |const |let |var |function |class |def |public |private |return |if [({]|for [({]|<\/?[a-z]|[\w.]+\(.*\)[;,]?$|[\w.[\]"']+\s*=\s*.+$)/;
+  /^(\s{2,}|\t|\$ |npm |yarn |pnpm |bun |pip |curl |git |from |import |export |const |let |var |function |class |def |public |private |return |if [({]|for [({]|<\/?[a-z]|[\w.]+\(.*\)[;,]?$|[\w.[\]"']+\s*=\s*.+$)/;
 const ENV_LINE = /^[A-Z][A-Z0-9_]{2,}\s*=/;
 /** 代码块内部的延续行：括号收尾、注释、字符串项、以逗号/开括号结尾 */
 const CODE_CONT = /^([)\]}][;,)\]}]*$|#\s|\/\/|["'`].*[,:]?$|.*[,({[]$|@\w)/;
@@ -106,6 +106,8 @@ const CODE_BODY = /^(?:#.*|\/\/.*|[A-Za-z_$][\w.$]*\s*(?:=|\()|[A-Za-z_$][\w.$]*
 
 /** 该行看起来像代码（用于起始判断） */
 function isProse(t: string): boolean {
+  // 引用块（> 开头）永远是正文，绝不进代码块
+  if (/^>/.test(t)) return true;
   if (/^[\u3400-\u9fff\uff00-\uffef]/.test(t) || /[。！？；]$/.test(t)) return true;
   // 含中文、但不是注释/字符串/赋值/调用的行，视为正文
   if (/[\u3400-\u9fff]/.test(t) && !/^(#|\/\/|["'`])/.test(t) && !/[=(){}[\]]/.test(t)) return true;
