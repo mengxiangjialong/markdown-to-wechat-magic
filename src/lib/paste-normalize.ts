@@ -98,6 +98,18 @@ function toHeading(line: string): string | null {
 const CODE_HINT =
   /^(\s{2,}|\t|\$ |npm |yarn |pnpm |bun |pip |curl |git |from |import |export |const |let |var |function |class |def |public |private |return |if [({]|for [({]|<\/?[a-z]|[\w.]+\(.*\)[;,]?$|[\w.[\]"']+\s*=\s*.+$)/;
 const ENV_LINE = /^[A-Z][A-Z0-9_]{2,}\s*=/;
+/** HTTP 请求行（如 GET /products/_search）与单独的开括号，视为代码起点 */
+const HTTP_OR_BRACE = /^(?:(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s+\/\S*|[{[])\s*$/;
+/** 「正文：GET /x」「正文：{」拆成正文行 + 代码行 */
+function splitProseCode(lines: string[]): string[] {
+  const out: string[] = [];
+  for (const l of lines) {
+    const m = l.match(/^(.*[\u3400-\u9fff].*?[：:])[ \t　]*((?:GET|POST|PUT|DELETE|PATCH|HEAD)\s+\/\S*|[{[])\s*$/);
+    if (m) out.push(m[1]!, m[2]!);
+    else out.push(l);
+  }
+  return out;
+}
 /** 代码块内部的延续行：括号收尾、注释、字符串项、以逗号/开括号结尾 */
 const CODE_CONT = /^([)\]}][;,)\]}]*$|#\s|\/\/|["'`].*[,:]?$|.*[,({[]$|@\w)/;
 
@@ -120,7 +132,7 @@ function isCodeish(line: string): boolean {
   if (t === "") return false;
   if (isProse(t)) return false;
   if (/^#/.test(t)) return false;
-  return ENV_LINE.test(t) || CODE_HINT.test(line);
+  return HTTP_OR_BRACE.test(t) || ENV_LINE.test(t) || CODE_HINT.test(line);
 }
 
 /** 该行可以留在代码块内部 */
@@ -266,7 +278,7 @@ export function normalizePastedText(text: string): string {
     .replace(/\r\n?/g, "\n")
     .replace(/[\u2028\u2029]/g, "\n")
     .replace(/\u00a0/g, " ");
-  let lines = mergeBrokenLines(raw.split("\n"));
+  let lines = splitProseCode(mergeBrokenLines(splitProseCode(raw.split("\n"))));
   lines = fenceCodeBlocks(lines);
   // 标题前后留空行
   const spaced: string[] = [];
@@ -287,7 +299,7 @@ function mergePunctOutsideFences(text: string): string {
         ? seg
         : seg
             .replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1")
-            .replace(/([：:])[ \t　]*\n+[ \t　]*(?=[^\s#>|*`+\-])/g, "$1"),
+            .replace(/([：:])[ \t　]*\n+[ \t　]*(?![{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s)(?=[^\s#>|*`+\-])/g, "$1"),
     )
     .join("");
 }
