@@ -61,3 +61,17 @@ describe("代码仍然正常成块", () => {
     expect(out.indexOf("正文说明在这里")).toBeGreaterThan(out.lastIndexOf("```"));
   });
 });
+
+describe("JSON 数据整体放进一个代码块", () => {
+  test("不带引号的键值行不会被冒号拆出代码块", () => {
+    const out = normalizePastedText('数据如下：\n{\nname: "手机",\nprice: 1\n}\n正文。');
+    expect(out).toContain('```env\n{\nname: "手机",\nprice: 1\n}\n```');
+  });
+  test("单行 JSON 也进代码块", () => {
+    const out = normalizePastedText('数据如下：{"name": "手机", "price": 1}\n正文。');
+    expect(out).toContain('```env\n{"name": "手机", "price": 1}\n```');
+  });
+  test("中文列表冒号仍是正文", () => {
+    expect(normalizePastedText("* **线程池**：实现简单")).not.toContain("```");
+  });
+});
