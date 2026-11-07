@@ -307,7 +307,7 @@ function restoreParallelListItems(lines: string[]): string[] {
       const item = (out[j] ?? "").trim();
       if (!item) continue;
       // 仅恢复明确的并列「独立的…」条目，不能把普通冒号后的正文变成列表。
-      if (!/^独立的\S/.test(item)) break;
+      if (!/^独立的\s*\S/.test(item)) break;
       items.push(j);
     }
     if (items.length < 2) continue;
