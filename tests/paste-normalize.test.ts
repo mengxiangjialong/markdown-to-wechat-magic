@@ -75,3 +75,31 @@ describe("JSON 数据整体放进一个代码块", () => {
     expect(normalizePastedText("* **线程池**：实现简单")).not.toContain("```");
   });
 });
+
+describe("无序列表不会被取消", () => {
+  test("星号列表原样保留", () => {
+    const out = normalizePastedText("要点如下：\n* **线程池**：实现简单\n* **队列**：速度快\n\n后续。");
+    expect(out).toContain("* **线程池**：实现简单");
+    expect(out).toContain("* **队列**：速度快");
+    expect(out).not.toContain("```");
+  });
+
+  test("减号列表原样保留", () => {
+    const out = normalizePastedText("要点如下：\n- 第一项：说明一\n- 第二项：说明二");
+    expect(out).toContain("- 第一项：说明一");
+    expect(out).toContain("- 第二项：说明二");
+  });
+
+  test("网页复制的 • 符号转成 Markdown 无序列表", () => {
+    const out = normalizePastedText("优势：\n• 简单\n• 快速");
+    expect(out).toContain("- 简单");
+    expect(out).toContain("- 快速");
+  });
+
+  test("列表后面的代码单独成块，列表留在块外", () => {
+    const out = normalizePastedText("* 配置如下：\nconst a = 1\n\n正文。");
+    expect(out).toContain("* 配置如下：");
+    expect(out).toContain("```env\nconst a = 1\n```");
+    expect(out.indexOf("* 配置如下：")).toBeLessThan(out.indexOf("```env"));
+  });
+});
