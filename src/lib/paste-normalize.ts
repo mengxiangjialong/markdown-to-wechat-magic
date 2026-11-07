@@ -298,6 +298,8 @@ export function normalizePastedText(text: string): string {
     .replace(/[\u2028\u2029]/g, "\n")
     .replace(/\u00a0/g, " ");
   let lines = splitProseCode(mergeBrokenLines(splitProseCode(raw.split("\n"))));
+  // 网页复制来的纯文本常用 • / · / ◦ 作项目符号，统一转成 Markdown 无序列表
+  lines = lines.map((l) => l.replace(/^(\s*)[•·◦▪]\s+/, "$1- "));
   lines = fenceCodeBlocks(lines);
   // 标题前后留空行
   const spaced: string[] = [];
