@@ -77,6 +77,20 @@ describe("JSON 数据整体放进一个代码块", () => {
 });
 
 describe("无序列表不会被取消", () => {
+  test("Bot 的两个无符号并列条目恢复为无序列表且不与引导句合并", () => {
+    const input = "每个 Bot 都可以拥有：\n\n独立的名称、头像和角色设定。\n\n独立的 AI 模型。";
+    expect(normalizePastedText(input)).toBe("每个 Bot 都可以拥有：\n\n- 独立的名称、头像和角色设定。\n\n- 独立的 AI 模型。");
+  });
+
+  test("普通冒号正文不能误转成列表", () => {
+    expect(normalizePastedText("说明：\n\n这是第一段正文。\n\n这是第二段正文。")).not.toContain("- ");
+  });
+
+  test("显式代码块内的并列文字不能添加列表符号", () => {
+    const out = normalizePastedText('```env\n# 每个 Bot 都可以拥有：\n# 独立的名称、头像和角色设定。\n# 独立的 AI 模型。\n```');
+    expect(out).not.toContain("- 独立的");
+  });
+
   test("星号列表原样保留", () => {
     const out = normalizePastedText("要点如下：\n* **线程池**：实现简单\n* **队列**：速度快\n\n后续。");
     expect(out).toContain("* **线程池**：实现简单");

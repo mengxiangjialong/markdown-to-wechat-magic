@@ -1,7 +1,7 @@
 /**
  * 粘贴内容规范化：
  * 1. HTML 表格 -> Markdown 表格
- * 2. 「1、」「一、」-> 二级标题；「1.1」-> 三级标题；「1.1.1」-> 四级标题
+ * 2. 保留列表标记，恢复明确的并列条目，不自动将编号转换为标题
  * 3. 修复复制导致的异常换行（把被拆开的一句话合并回去）
  * 4. 代码片段自动包裹 ``` 围栏
  */
@@ -292,12 +292,36 @@ export function closeUnclosedFences(text: string): string {
 }
 
 /** 主入口：把粘贴文本规范化为 Markdown */
+function restoreParallelListItems(lines: string[]): string[] {
+  const out = [...lines];
+  let inFence = false;
+  for (let i = 0; i < out.length; i++) {
+    const line = out[i] ?? "";
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence || !/[：:]\s*$/.test(line) || isCodeish(line) || /^\s*(?:>|[-+*]\s|\d+[.)]\s)/.test(line)) continue;
+    const items: number[] = [];
+    for (let j = i + 1; j < out.length; j++) {
+      const item = (out[j] ?? "").trim();
+      if (!item) continue;
+      // 仅恢复明确的并列「独立的…」条目，不能把普通冒号后的正文变成列表。
+      if (!/^独立的\s*\S/.test(item)) break;
+      items.push(j);
+    }
+    if (items.length < 2) continue;
+    for (const index of items) out[index] = `- ${(out[index] ?? "").trim()}`;
+  }
+  return out;
+}
+
 export function normalizePastedText(text: string): string {
   const raw = text
     .replace(/\r\n?/g, "\n")
     .replace(/[\u2028\u2029]/g, "\n")
     .replace(/\u00a0/g, " ");
-  let lines = splitProseCode(mergeBrokenLines(splitProseCode(raw.split("\n"))));
+  let lines = splitProseCode(mergeBrokenLines(splitProseCode(restoreParallelListItems(raw.split("\n")))));
   // 网页复制来的纯文本常用 • / · / ◦ 作项目符号，统一转成 Markdown 无序列表
   lines = lines.map((l) => l.replace(/^(\s*)[•·◦▪]\s+/, "$1- "));
   lines = fenceCodeBlocks(lines);
