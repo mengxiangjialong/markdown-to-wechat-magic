@@ -38,6 +38,23 @@ export function htmlToMarkdown(html: string): string {
     table.replaceWith(holder);
   });
 
+  // 列表转成 Markdown 标记，避免粘贴后丢失无序/有序列表符号
+  doc.querySelectorAll("li").forEach((li) => {
+    let depth = 0;
+    let p = li.parentElement;
+    while (p) {
+      if (p.tagName === "UL" || p.tagName === "OL") depth++;
+      p = p.parentElement;
+    }
+    const parent = li.parentElement;
+    let marker = "- ";
+    if (parent?.tagName === "OL") {
+      const idx = Array.from(parent.children).filter((c) => c.tagName === "LI").indexOf(li) + 1;
+      marker = `${idx}. `;
+    }
+    li.prepend(doc.createTextNode("  ".repeat(Math.max(0, depth - 1)) + marker));
+  });
+
   doc.querySelectorAll("br").forEach((br) => br.replaceWith(doc.createTextNode("\n")));
   doc
     .querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr,pre,section")
@@ -281,6 +298,8 @@ export function normalizePastedText(text: string): string {
     .replace(/[\u2028\u2029]/g, "\n")
     .replace(/\u00a0/g, " ");
   let lines = splitProseCode(mergeBrokenLines(splitProseCode(raw.split("\n"))));
+  // 网页复制来的纯文本常用 • / · / ◦ 作项目符号，统一转成 Markdown 无序列表
+  lines = lines.map((l) => l.replace(/^(\s*)[•·◦▪]\s+/, "$1- "));
   lines = fenceCodeBlocks(lines);
   // 标题前后留空行
   const spaced: string[] = [];
@@ -312,6 +331,6 @@ export function normalizeClipboard(e: ClipboardEvent | React.ClipboardEvent): st
   const dt = (e as React.ClipboardEvent).clipboardData as DataTransfer;
   const html = dt.getData("text/html");
   const plain = dt.getData("text/plain");
-  const source = html && /<table[\s>]/i.test(html) ? htmlToMarkdown(html) : plain;
+  const source = html && /<table[\s>]|<li[\s>]/i.test(html) ? htmlToMarkdown(html) : plain;
   return normalizePastedText(source || plain);
 }
