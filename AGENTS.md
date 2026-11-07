@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Copy article content as both `text/html` with inline styles and `text/plain` with readable article text; use a copy-event fallback so rich-text editors never receive HTML source as plain text.
+- Restore unmarked parallel list items before punctuation-line merging in the paste normalizer, with narrow recognition and fence awareness to avoid changing ordinary prose or code.
