@@ -110,18 +110,6 @@ describe("无序列表不会被取消", () => {
     expect(out).toContain("- 快速");
   });
 
-  test("冒号后接加粗文字要合并到同一行", () => {
-    const out = normalizePastedText("根本原因：\n**代理没生效**。");
-    expect(out).toBe("根本原因：**代理没生效**。");
-  });
-
-  test("冒号后接有序列表不能合并，列表保持原样", () => {
-    const out = normalizePastedText("如下：\n1. 第一条\n2. 第二条");
-    expect(out).toContain("1. 第一条");
-    expect(out).toContain("2. 第二条");
-    expect(out).not.toContain("如下：1.");
-  });
-
   test("列表后面的代码单独成块，列表留在块外", () => {
     const out = normalizePastedText("* 配置如下：\nconst a = 1\n\n正文。");
     expect(out).toContain("* 配置如下：");

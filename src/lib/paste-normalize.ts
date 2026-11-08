@@ -344,7 +344,7 @@ function mergePunctOutsideFences(text: string): string {
         ? seg
         : seg
             .replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1")
-            .replace(/([：:])[ \t　]*\n+[ \t　]*(?![{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s)(?!(?:[-+*]|\d+[.)])\s)(?![#>`])(?=\S)/g, "$1"),
+            .replace(/([：:])[ \t　]*\n+[ \t　]*(?![{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s)(?=[^\s#>|*`+\-])/g, "$1"),
     )
     .join("");
 }
