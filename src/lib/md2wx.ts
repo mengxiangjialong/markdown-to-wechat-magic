@@ -21,7 +21,7 @@ function mergeLeadingColons(markdown: string): string {
             // 「文字 \n ：说明」-> 「文字：说明」
             .replace(/([^\n])[\t 　]*\n+[\t 　]*(?=[：:])/g, "$1")
             // 「文字： \n 说明」-> 「文字：说明」
-            .replace(/([：:])[\t 　]*\n+[\t 　]*(?![{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s)(?=[^\s#>|*`+\-])/g, "$1"),
+            .replace(/([：:])[\t 　]*\n+[\t 　]*(?![{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s|\d+[.)、．]\s?|[-+*]\s)(?=[^\s#>|*`+\-])/g, "$1"),
     )
     .join("");
 }

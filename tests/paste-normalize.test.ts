@@ -110,6 +110,17 @@ describe("无序列表不会被取消", () => {
     expect(out).toContain("- 快速");
   });
 
+  test("冒号后面的数字序号不并入上一行", () => {
+    const out = normalizePastedText("步骤如下：\n1. 第一步\n2. 第二步\n3. 第三步");
+    expect(out).toContain("步骤如下：\n1. 第一步");
+    expect(out).toContain("2. 第二步");
+  });
+
+  test("冒号后面的中文数字序号不并入上一行", () => {
+    const out = normalizePastedText("配置项：\n1、名称\n2、头像");
+    expect(out).toContain("配置项：\n1、名称");
+  });
+
   test("列表后面的代码单独成块，列表留在块外", () => {
     const out = normalizePastedText("* 配置如下：\nconst a = 1\n\n正文。");
     expect(out).toContain("* 配置如下：");
