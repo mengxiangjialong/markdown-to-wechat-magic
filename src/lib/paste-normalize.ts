@@ -8,11 +8,43 @@
 
 const CN_NUM = "零一二三四五六七八九十百";
 
-/** 把 HTML 里的表格转成 Markdown 表格，其它内容取纯文本 */
+/** 保留 HTML 中的标题、加粗、表格和列表，转换为 Markdown。 */
 export function htmlToMarkdown(html: string): string {
   if (typeof window === "undefined") return "";
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("style,script").forEach((n) => n.remove());
+
+  // 先隔离代码，避免其中的标签样式被转换成文章标题或加粗。
+  const codeBlocks: string[] = [];
+  doc.querySelectorAll("pre").forEach((pre) => {
+    const code = (pre.textContent ?? "").replace(/\r\n?/g, "\n").replace(/\n$/, "");
+    const marker = `\uE000CODE${codeBlocks.length}\uE001`;
+    const fence = "`".repeat(Math.max(3, ...Array.from(code.matchAll(/`+/g), (match) => match[0].length + 1)));
+    codeBlocks.push(`${fence}env\n${code}\n${fence}`);
+    pre.replaceWith(doc.createTextNode(`\n\n${marker}\n\n`));
+  });
+
+  doc.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((heading) => {
+    const depth = Number(heading.tagName.slice(1));
+    heading.prepend(doc.createTextNode(`\n\n${"#".repeat(depth)} `));
+  });
+
+  const isBold = (element: Element) => {
+    if (element.matches("strong,b")) return true;
+    const weight = (element as HTMLElement).style?.fontWeight ?? "";
+    return /^(?:bold|bolder)$/.test(weight) || Number(weight) >= 600;
+  };
+  doc.querySelectorAll("strong,b,span").forEach((element) => {
+    if (!isBold(element) || !(element.textContent ?? "").trim()) return;
+    // 嵌套的加粗标签只保留一对标记。
+    let parent = element.parentElement;
+    while (parent) {
+      if (isBold(parent)) return;
+      parent = parent.parentElement;
+    }
+    element.prepend(doc.createTextNode("**"));
+    element.append(doc.createTextNode("**"));
+  });
 
   doc.querySelectorAll("table").forEach((table) => {
     const rows = Array.from(table.querySelectorAll("tr")).map((tr) =>
@@ -60,7 +92,9 @@ export function htmlToMarkdown(html: string): string {
     .querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr,pre,section")
     .forEach((el) => el.append(doc.createTextNode("\n")));
 
-  return (doc.body.textContent ?? "").replace(/\u00a0/g, " ");
+  return (doc.body.textContent ?? "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\uE000CODE(\d+)\uE001/g, (_, index: string) => codeBlocks[Number(index)] ?? "");
 }
 
 /** 合并被复制工具拆开的换行：下一行以标点或补语开头时，接回上一行 */
@@ -355,6 +389,7 @@ export function normalizeClipboard(e: ClipboardEvent | React.ClipboardEvent): st
   const dt = (e as React.ClipboardEvent).clipboardData as DataTransfer;
   const html = dt.getData("text/html");
   const plain = dt.getData("text/plain");
-  const source = html && /<table[\s>]|<li[\s>]/i.test(html) ? htmlToMarkdown(html) : plain;
+  const hasFormatting = /<(?:table|li|h[1-6]|strong|b|pre)[\s>]|font-weight\s*:/i.test(html);
+  const source = html && (hasFormatting || !plain) ? htmlToMarkdown(html) : plain;
   return normalizePastedText(source || plain);
 }

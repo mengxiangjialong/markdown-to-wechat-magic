@@ -1,5 +1,51 @@
 import { describe, expect, test } from "bun:test";
-import { normalizePastedText, closeUnclosedFences } from "@/lib/paste-normalize";
+import { normalizePastedText, closeUnclosedFences, normalizeClipboard } from "@/lib/paste-normalize";
+import { Window } from "happy-dom";
+
+describe("粘贴保留标题与加粗", () => {
+  function paste(html: string, plain: string) {
+    const browser = new Window();
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    const originalParser = Object.getOwnPropertyDescriptor(globalThis, "DOMParser");
+    Object.defineProperty(globalThis, "window", { value: browser, configurable: true });
+    Object.defineProperty(globalThis, "DOMParser", { value: browser.DOMParser, configurable: true });
+    try {
+      return normalizeClipboard({ clipboardData: { getData: (type: string) => type === "text/html" ? html : plain } } as unknown as ClipboardEvent);
+    } finally {
+      if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+      else Reflect.deleteProperty(globalThis, "window");
+      if (originalParser) Object.defineProperty(globalThis, "DOMParser", originalParser);
+      else Reflect.deleteProperty(globalThis, "DOMParser");
+      browser.happyDOM.abort();
+    }
+  }
+
+  test("网页的六级标题保留对应层级", () => {
+    const html = Array.from({ length: 6 }, (_, i) => `<h${i + 1}>标题${i + 1}</h${i + 1}>`).join("");
+    const out = paste(html, "标题1\n标题2\n标题3\n标题4\n标题5\n标题6");
+    for (let depth = 1; depth <= 6; depth++) expect(out.split("\n")).toContain(`${"#".repeat(depth)} 标题${depth}`);
+  });
+
+  test("语义加粗和字体粗细样式都保留为加粗", () => {
+    expect(paste('<p><strong>重点</strong>、<b>强调</b>、<span style="font-weight:700">粗体</span></p>', "重点、强调、粗体")).toBe("**重点**、**强调**、**粗体**");
+  });
+
+  test("列表中的标题与加粗不会因 HTML 转换而丢失", () => {
+    const out = paste('<h2>功能</h2><ul><li><strong>线程池</strong>：实现简单</li></ul>', "功能\n线程池：实现简单");
+    expect(out).toContain("## 功能");
+    expect(out).toContain("- **线程池**：实现简单");
+  });
+
+  test("纯 Markdown 标题与加粗原样保留", () => {
+    expect(paste("", "# 标题\n\n**重点**")).toBe("# 标题\n\n**重点**");
+  });
+
+  test("代码内部的样式标签不会生成加粗标记", () => {
+    const out = paste('<h2>代码</h2><pre><code>const name = <b>"test"</b>;</code></pre><p><strong>说明</strong></p>', '代码\nconst name = "test";\n说明');
+    expect(out).toContain('```env\nconst name = "test";\n```');
+    expect(out).toContain("**说明**");
+  });
+});
 
 describe("引用块不会被包进代码块", () => {
   test("英文引用不生成 ```env 围栏", () => {
