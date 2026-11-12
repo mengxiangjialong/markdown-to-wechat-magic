@@ -95,8 +95,12 @@ describe("代码仍然正常成块", () => {
     expect(out).toContain("web_search.invoke(");
   });
 
+  test("中文冒号后面的内容不自动加代码围栏", () => {
+    expect(normalizePastedText("配置如下：\nserver.port=8080\n\n正文。")).not.toContain("```");
+  });
+
   test("$ 开头的命令提示符仍会被识别为代码", () => {
-    const out = normalizePastedText("安装依赖：\n\n$ npm install marked\n\n正文结束。");
+    const out = normalizePastedText("安装依赖\n\n$ npm install marked\n\n正文结束。");
     expect(out).toContain("```env");
     expect(out).toContain("$ npm install marked");
   });
@@ -167,10 +171,9 @@ describe("无序列表不会被取消", () => {
     expect(out).toContain("配置项：\n1、名称");
   });
 
-  test("列表后面的代码单独成块，列表留在块外", () => {
+  test("列表冒号后的内容不加代码围栏，列表保留", () => {
     const out = normalizePastedText("* 配置如下：\nconst a = 1\n\n正文。");
     expect(out).toContain("* 配置如下：");
-    expect(out).toContain("```env\nconst a = 1\n```");
-    expect(out.indexOf("* 配置如下：")).toBeLessThan(out.indexOf("```env"));
+    expect(out).not.toContain("```");
   });
 });

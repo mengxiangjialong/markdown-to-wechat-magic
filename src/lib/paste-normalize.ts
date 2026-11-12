@@ -224,7 +224,11 @@ function fenceCodeBlocks(lines: string[]): string[] {
       i++;
       continue;
     }
-    if (isCodeish(line)) {
+    // 中文冒号「：」后的内容按正文处理，不自动加代码围栏（JSON 与请求行除外）。
+    let prevIdx = out.length - 1;
+    while (prevIdx >= 0 && out[prevIdx]!.trim() === "") prevIdx--;
+    const afterColon = prevIdx >= 0 && /：\s*$/.test(out[prevIdx]!) && !HTTP_OR_BRACE.test(line.trim());
+    if (!afterColon && isCodeish(line)) {
       const block: string[] = [];
       let delimiterDepth = 0;
       while (i < lines.length) {
