@@ -311,10 +311,11 @@ export function repairFences(text: string): string {
       continue;
     }
     if (inFence) {
-      // ```markdown 围栏里装的就是 Markdown 原文（标题、列表、正文），不按正文提前闭合
-      const isMarkdownFence = fenceLang === "markdown" || fenceLang === "md";
+      // ```markdown 围栏装的是 Markdown 原文（标题、列表、正文），```env 围栏里可能有中文注释，
+      // 这两类围栏都不按正文提前闭合，避免剩余内容被再包一层 ```env
+      const keepOpen = fenceLang === "markdown" || fenceLang === "md" || fenceLang === "env";
       const punctuationContinuation = /^[,:：]\s*(?:["']|[\d{\[])/.test(t);
-      if (!isMarkdownFence && t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t) && !punctuationContinuation) {
+      if (!keepOpen && t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t) && !punctuationContinuation) {
         inFence = false;
         fenceLang = "";
         out.push("```", "");
@@ -350,8 +351,9 @@ export function closeUnclosedFences(text: string): string {
     }
   });
   if (open === -1) return text;
-  // ```markdown 围栏装的是 Markdown 原文，正文行不是提前闭合的信号，直接在末尾补结尾
-  if (openLang === "markdown" || openLang === "md") {
+  // ```markdown 围栏装的是 Markdown 原文，```env 围栏里可能有中文注释，
+  // 正文行都不是提前闭合的信号，直接在末尾补结尾
+  if (openLang === "markdown" || openLang === "md" || openLang === "env") {
     return `${text.replace(/\s*$/, "")}\n\`\`\`\n`;
   }
   // 未闭合：在第一段正文（空行后以中文开头/句号结尾的行）之前补上结尾
