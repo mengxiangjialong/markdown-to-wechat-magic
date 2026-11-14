@@ -1,6 +1,26 @@
 import { describe, expect, test } from "bun:test";
 import { normalizePastedText, closeUnclosedFences, normalizeClipboard } from "@/lib/paste-normalize";
 import { Window } from "happy-dom";
+import { renderWeixinHtml } from "@/lib/md2wx";
+import { BUILTIN_THEMES } from "@/lib/theme";
+
+describe("冒号合并保留文章结构", () => {
+  test("容器开始和结束标记各自保留一行", () => {
+    const input = "## 扩展语法\n\n:::card 卡片\n正文\n:::\n\n:::tip 提示\n提示正文\n:::";
+    expect(normalizePastedText(input)).toBe(input);
+    const theme = BUILTIN_THEMES[0];
+    if (!theme) throw new Error("Missing built-in theme");
+    const html = renderWeixinHtml(input, theme);
+    expect(html).not.toContain(":::card");
+    expect(html).not.toContain(":::tip");
+    expect(html).not.toContain(":::");
+  });
+
+  test("显式代码围栏中的冒号和逗号换行不合并", () => {
+    const input = '```env\n{\n"name"\n: "手机"\n, "price": 1\n}\n```';
+    expect(normalizePastedText(input)).toBe(input);
+  });
+});
 
 describe("粘贴保留标题与加粗", () => {
   function paste(html: string, plain: string) {

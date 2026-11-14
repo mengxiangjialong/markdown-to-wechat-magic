@@ -100,8 +100,21 @@ export function htmlToMarkdown(html: string): string {
 /** 合并被复制工具拆开的换行：下一行以标点或补语开头时，接回上一行 */
 function mergeBrokenLines(lines: string[]): string[] {
   const out: string[] = [];
+  let fence: string | undefined;
   const startsWithPunct = (l: string) => /^[：:，,。、；;）】」』%》?？!！]/.test(l);
   for (const raw of lines) {
+    const marker = raw.trim().match(/^(`{3,}|~{3,})/);
+    if (marker) {
+      if (!fence) fence = marker[1];
+      else if (raw.trim() === fence) fence = undefined;
+      out.push(raw);
+      continue;
+    }
+    // 容器标记和代码原文不能参与标点换行合并。
+    if (fence || /^\s*:::/.test(raw)) {
+      out.push(raw);
+      continue;
+    }
     const line = raw.replace(/\s+$/, "");
     const prev = out.length ? out[out.length - 1]! : "";
     if (line.trim() === "") {
@@ -116,8 +129,9 @@ function mergeBrokenLines(lines: string[]): string[] {
     if (startsWithPunct(line.trim())) {
       // 回溯到最近一行非空文本并接上去
       while (out.length && out[out.length - 1] === "") out.pop();
-      if (out.length && !/^```/.test(out[out.length - 1]!)) {
-        out[out.length - 1] = out[out.length - 1]! + line.trim();
+      const previous = out[out.length - 1];
+      if (previous !== undefined && !/^\s*(?:`{3,}|~{3,}|:::)/.test(previous)) {
+        out[out.length - 1] = previous + line.trim();
         continue;
       }
     }
@@ -290,7 +304,8 @@ export function repairFences(text: string): string {
       continue;
     }
     if (inFence) {
-      if (t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t)) {
+      const punctuationContinuation = /^[,:：]\s*(?:["']|[\d{\[])/.test(t);
+      if (t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t) && !punctuationContinuation) {
         inFence = false;
         out.push("```", "");
       }
@@ -381,8 +396,8 @@ function mergePunctOutsideFences(text: string): string {
       idx % 2 === 1
         ? seg
         : seg
-            .replace(/([^\n])\n+[ \t　]*(?=[：:，,。、；;）】」』%》?？!！])/g, "$1")
-            .replace(/([：:])[ \t　]*\n+[ \t　]*(?![{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s|\d+[.)、．]\s?|[-+*]\s)(?=[^\s#>|*`+\-])/g, "$1"),
+            .replace(/([^\n])\n+[ \t　]*(?!:::)(?=[：:，,。、；;）】」』%》?？!！])/g, "$1")
+            .replace(/(?<!:)([：:])(?!:)[ \t　]*\n+[ \t　]*(?!:::|[{\[]|(?:GET|POST|PUT|DELETE|PATCH|HEAD)\s|\d+[.)、．]\s?|[-+*]\s)(?=[^\s#>|*`+\-])/g, "$1"),
     )
     .join("");
 }
