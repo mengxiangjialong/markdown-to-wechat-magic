@@ -146,6 +146,40 @@ describe("JSON 数据整体放进一个代码块", () => {
   });
 });
 
+describe("Markdown 围栏保持原样", () => {
+  test("```markdown 围栏内的标题、加粗、列表不会被改成 ```env", () => {
+    const input = "```markdown\n# 标题\n\n**重点**内容\n\n- 列表项一\n- 列表项二\n```";
+    expect(normalizePastedText(input)).toBe(input);
+  });
+
+  test("```markdown 围栏内的中文正文不会触发提前闭合", () => {
+    const input = "```markdown\n# 标题\n\n这是一段中文正文说明。\n\n```";
+    const out = normalizePastedText(input);
+    expect(out.match(/```/g)?.length).toBe(2);
+    expect(out).toContain("这是一段中文正文说明。");
+    expect(out).not.toContain("```env");
+  });
+
+  test("未闭合的 ```markdown 围栏在末尾补结尾，正文不被拆出", () => {
+    const out = closeUnclosedFences("```markdown\n# 标题\n\n这是一段中文正文说明。");
+    expect(out.match(/```/g)?.length).toBe(2);
+    expect(out.indexOf("这是一段中文正文说明。")).toBeLessThan(out.lastIndexOf("```"));
+  });
+
+  test("语言名 Markdown 粘在代码前时补出 ```markdown 围栏", () => {
+    const out = normalizePastedText("Markdown# 标题\n\n**重点**\n\n后续正文。");
+    expect(out).toContain("```markdown\n# 标题");
+    expect(out).not.toContain("```env");
+  });
+
+  test("```markdown 围栏前后的代码仍正常生成 ```env 围栏", () => {
+    const out = normalizePastedText("const a = 1\n\n```markdown\n# 标题\n```\n\nconst b = 2");
+    expect(out).toContain("```env\nconst a = 1\n```");
+    expect(out).toContain("```markdown\n# 标题\n```");
+    expect(out).toContain("```env\nconst b = 2\n```");
+  });
+});
+
 describe("无序列表不会被取消", () => {
   test("Bot 的两个无符号并列条目恢复为无序列表且不与引导句合并", () => {
     const input = "每个 Bot 都可以拥有：\n\n独立的名称、头像和角色设定。\n\n独立的 AI 模型。";

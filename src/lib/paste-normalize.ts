@@ -283,11 +283,12 @@ function fenceCodeBlocks(lines: string[]): string[] {
 }
 
 /** 全文围栏配平：奇数个 ``` 时补一个结尾 */
-const LANGS = "Java|JavaScript|TypeScript|Python|YAML|JSON|XML|SQL|Bash|Shell|Go|Kotlin|HTML|CSS|Properties|Dockerfile|Rust|C\\+\\+";
+const LANGS = "Java|JavaScript|TypeScript|Python|YAML|JSON|XML|SQL|Bash|Shell|Go|Kotlin|HTML|CSS|Properties|Dockerfile|Rust|C\\+\\+|Markdown|MD";
 /** 逐个围栏修复：语言名粘在代码前的补围栏；代码块遇到正文行时自动闭合 */
 export function repairFences(text: string): string {
   const out: string[] = [];
   let inFence = false;
+  let fenceLang = "";
   const glued = new RegExp(`^(${LANGS})(?=[@A-Za-z_<{\\[#][^\\s]*)`);
   const all = text.split("\n");
   for (let idx = 0; idx < all.length; idx++) {
@@ -299,14 +300,23 @@ export function repairFences(text: string): string {
       if (next === undefined || isProse(next.trim())) continue;
     }
     if (/^```/.test(t)) {
-      inFence = !inFence;
+      if (inFence) {
+        inFence = false;
+        fenceLang = "";
+      } else {
+        inFence = true;
+        fenceLang = t.slice(3).trim().toLowerCase();
+      }
       out.push(raw);
       continue;
     }
     if (inFence) {
+      // ```markdown 围栏里装的就是 Markdown 原文（标题、列表、正文），不按正文提前闭合
+      const isMarkdownFence = fenceLang === "markdown" || fenceLang === "md";
       const punctuationContinuation = /^[,:：]\s*(?:["']|[\d{\[])/.test(t);
-      if (t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t) && !punctuationContinuation) {
+      if (!isMarkdownFence && t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t) && !punctuationContinuation) {
         inFence = false;
+        fenceLang = "";
         out.push("```", "");
       }
       out.push(raw);
@@ -327,10 +337,23 @@ export function closeUnclosedFences(text: string): string {
   text = repairFences(text);
   const lines = text.split("\n");
   let open = -1;
+  let openLang = "";
   lines.forEach((l, i) => {
-    if (/^\s*```/.test(l)) open = open === -1 ? i : -1;
+    if (/^\s*```/.test(l)) {
+      if (open === -1) {
+        open = i;
+        openLang = l.trim().slice(3).trim().toLowerCase();
+      } else {
+        open = -1;
+        openLang = "";
+      }
+    }
   });
   if (open === -1) return text;
+  // ```markdown 围栏装的是 Markdown 原文，正文行不是提前闭合的信号，直接在末尾补结尾
+  if (openLang === "markdown" || openLang === "md") {
+    return `${text.replace(/\s*$/, "")}\n\`\`\`\n`;
+  }
   // 未闭合：在第一段正文（空行后以中文开头/句号结尾的行）之前补上结尾
   for (let i = open + 1; i < lines.length; i++) {
     const t = lines[i]!.trim();
@@ -378,10 +401,12 @@ export function normalizePastedText(text: string): string {
   // 网页复制来的纯文本常用 • / · / ◦ 作项目符号，统一转成 Markdown 无序列表
   lines = lines.map((l) => l.replace(/^(\s*)[•·◦▪]\s+/, "$1- "));
   lines = fenceCodeBlocks(lines);
-  // 标题前后留空行
+  // 标题前后留空行（围栏内的 Markdown 原文不动）
   const spaced: string[] = [];
+  let spacingFence = false;
   for (const l of lines) {
-    if (/^#{1,6}\s/.test(l) && spaced.length && spaced[spaced.length - 1] !== "") spaced.push("");
+    if (/^\s*```/.test(l)) spacingFence = !spacingFence;
+    if (!spacingFence && /^#{1,6}\s/.test(l) && spaced.length && spaced[spaced.length - 1] !== "") spaced.push("");
     spaced.push(l);
   }
   const joined = spaced.join("\n").replace(/\n{3,}/g, "\n\n");
