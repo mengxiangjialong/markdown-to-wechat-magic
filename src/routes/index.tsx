@@ -604,11 +604,12 @@ function Editor() {
           <textarea
             ref={taRef}
             value={markdown}
+            wrap="soft"
             onChange={(e) => onChangeText(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             spellCheck={false}
-            className="min-h-0 flex-1 resize-none bg-background p-5 font-mono text-sm leading-relaxed outline-none"
+            className="min-h-0 flex-1 resize-none whitespace-pre-wrap break-words bg-background p-5 font-mono text-sm leading-relaxed outline-none"
           />
         </section>
 

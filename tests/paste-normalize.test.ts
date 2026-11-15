@@ -65,6 +65,15 @@ describe("粘贴保留标题与加粗", () => {
     expect(out).toContain('```env\nconst name = "test";\n```');
     expect(out).toContain("**说明**");
   });
+
+  test("富文本代码块使用 br 表示换行时仍按多行写入 env 围栏", () => {
+    const out = paste(
+      "<h3>模板代码</h3><pre><code><span>const first = 1;</span><br><span>const second = 2;</span><br><span>return first + second;</span></code></pre>",
+      "模板代码\nconst first = 1;\nconst second = 2;\nreturn first + second;",
+    );
+
+    expect(out).toContain("```env\nconst first = 1;\nconst second = 2;\nreturn first + second;\n```");
+  });
 });
 
 describe("引用块不会被包进代码块", () => {
@@ -89,6 +98,28 @@ describe("引用块不会被包进代码块", () => {
 });
 
 describe("代码仍然正常成块", () => {
+  test("粘贴模板中的围栏代码保留逐行内容，预览按行显示并允许长行折行", () => {
+    const input = [
+      "### 示例代码",
+      "",
+      "```ts",
+      "const project = \"markdown-to-wechat-magic\";",
+      "function start() {",
+      "  return project;",
+      "}",
+      "```",
+    ].join("\n");
+    const normalized = normalizePastedText(input);
+    expect(normalized).toContain("const project = \"markdown-to-wechat-magic\";\nfunction start() {\n  return project;\n}");
+
+    const theme = BUILTIN_THEMES[0];
+    if (!theme) throw new Error("Missing built-in theme");
+    const html = renderWeixinHtml(normalized, theme);
+    expect(html).toContain("white-space:pre-wrap");
+    expect(html).toContain("overflow-wrap:anywhere");
+    expect(html).toContain("const project = &quot;markdown-to-wechat-magic&quot;;\nfunction start() {");
+  });
+
   test("跨空行的完整代码只生成一个 env 围栏", () => {
     const py = [
       "from langchain_tavily import TavilySearch",
@@ -147,6 +178,15 @@ describe("JSON 数据整体放进一个代码块", () => {
 });
 
 describe("Markdown 围栏保持原样", () => {
+  test("无语言名围栏中的中文说明与多行内容不被拆开", () => {
+    const input = "```\n# 项目名称与定位\n[一句话说明项目核心功能与运行形态]\n\n- 安装依赖：`pnpm install`\n- 生产构建：`pnpm build`\n```";
+    const out = normalizePastedText(input);
+
+    expect(out.match(/```/g)?.length).toBe(2);
+    expect(out).toContain(input);
+    expect(out).not.toContain("```env");
+  });
+
   test("```markdown 围栏内的标题、加粗、列表不会被改成 ```env", () => {
     const input = "```markdown\n# 标题\n\n**重点**内容\n\n- 列表项一\n- 列表项二\n```";
     expect(normalizePastedText(input)).toBe(input);

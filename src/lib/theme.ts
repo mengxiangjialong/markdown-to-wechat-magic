@@ -208,9 +208,11 @@ export function buildStyles(c: ThemeConfig): Styles {
       borderRadius: "10px",
       fontSize: `${fs - 2}px`,
       lineHeight: "1.55",
-      overflowX: "auto",
+      overflowX: "hidden",
       fontFamily: "Menlo, Consolas, monospace",
-      whiteSpace: "pre",
+      whiteSpace: "pre-wrap",
+      overflowWrap: "anywhere",
+      wordBreak: "break-word",
     }),
     img: css({ maxWidth: "100%", borderRadius: "8px", display: "block", margin: "0 auto 14px" }),
     hr: css({

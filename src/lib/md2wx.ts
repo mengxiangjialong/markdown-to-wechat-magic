@@ -75,7 +75,7 @@ function createMarked(theme: Theme): Marked {
       return `<code style="${s.code}">${escapeHtml(text)}</code>`;
     },
     code({ text }: Tokens.Code) {
-      return `<pre style="${s.pre}"><code style="font-family:Menlo,Consolas,monospace;color:inherit;background:transparent">${escapeHtml(text)}</code></pre>`;
+      return `<pre style="${s.pre}"><code style="font-family:Menlo,Consolas,monospace;color:inherit;background:transparent;white-space:inherit;overflow-wrap:anywhere;word-break:break-word">${escapeHtml(text)}</code></pre>`;
     },
     blockquote({ tokens }: Tokens.Blockquote) {
       return `<blockquote style="${s.blockquote}">${this.parser.parse(tokens)}</blockquote>`;

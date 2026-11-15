@@ -8,6 +8,27 @@
 
 const CN_NUM = "零一二三四五六七八九十百";
 
+/** 提取富文本剪贴板中的代码，兼容用 <br> 或逐行块元素表示换行的编辑器。 */
+function readPreformattedText(pre: Element): string {
+  const readNode = (node: Node): string => {
+    if (node.nodeType === 3) return node.nodeValue ?? "";
+    if (node.nodeType !== 1) return "";
+
+    const element = node as HTMLElement;
+    if (element.tagName === "BR") return "\n";
+
+    const content = Array.from(element.childNodes, readNode).join("");
+    const isLineBlock =
+      element !== pre &&
+      (/^(?:DIV|P)$/.test(element.tagName) ||
+        /(?:^|\s)(?:code-)?line(?:\s|$)/i.test(element.className) ||
+        /^(?:block|flow-root|list-item)$/.test(element.style?.display ?? ""));
+    return isLineBlock && content && !content.endsWith("\n") ? `${content}\n` : content;
+  };
+
+  return readNode(pre).replace(/\r\n?/g, "\n").replace(/\n$/, "");
+}
+
 /** 保留 HTML 中的标题、加粗、表格和列表，转换为 Markdown。 */
 export function htmlToMarkdown(html: string): string {
   if (typeof window === "undefined") return "";
@@ -17,7 +38,7 @@ export function htmlToMarkdown(html: string): string {
   // 先隔离代码，避免其中的标签样式被转换成文章标题或加粗。
   const codeBlocks: string[] = [];
   doc.querySelectorAll("pre").forEach((pre) => {
-    const code = (pre.textContent ?? "").replace(/\r\n?/g, "\n").replace(/\n$/, "");
+    const code = readPreformattedText(pre);
     const marker = `\uE000CODE${codeBlocks.length}\uE001`;
     const fence = "`".repeat(Math.max(3, ...Array.from(code.matchAll(/`+/g), (match) => match[0].length + 1)));
     codeBlocks.push(`${fence}env\n${code}\n${fence}`);
@@ -313,7 +334,7 @@ export function repairFences(text: string): string {
     if (inFence) {
       // ```markdown 围栏装的是 Markdown 原文（标题、列表、正文），```env 围栏里可能有中文注释，
       // 这两类围栏都不按正文提前闭合，避免剩余内容被再包一层 ```env
-      const keepOpen = fenceLang === "markdown" || fenceLang === "md" || fenceLang === "env";
+      const keepOpen = !fenceLang || fenceLang === "markdown" || fenceLang === "md" || fenceLang === "env";
       const punctuationContinuation = /^[,:：]\s*(?:["']|[\d{\[])/.test(t);
       if (!keepOpen && t && !/^\s/.test(raw) && isProse(t) && !/^(#|\/\/)/.test(t) && !punctuationContinuation) {
         inFence = false;
@@ -353,7 +374,7 @@ export function closeUnclosedFences(text: string): string {
   if (open === -1) return text;
   // ```markdown 围栏装的是 Markdown 原文，```env 围栏里可能有中文注释，
   // 正文行都不是提前闭合的信号，直接在末尾补结尾
-  if (openLang === "markdown" || openLang === "md" || openLang === "env") {
+  if (!openLang || openLang === "markdown" || openLang === "md" || openLang === "env") {
     return `${text.replace(/\s*$/, "")}\n\`\`\`\n`;
   }
   // 未闭合：在第一段正文（空行后以中文开头/句号结尾的行）之前补上结尾
