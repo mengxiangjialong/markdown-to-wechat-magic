@@ -144,6 +144,7 @@ function Editor() {
     return () => clearTimeout(t);
   }, [markdown]);
 
+  const charCount = useMemo(() => markdown.replace(/\s/g, "").length, [markdown]);
   const themes = useMemo(() => [...BUILTIN_THEMES, ...customThemes], [customThemes]);
   const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0]!;
   const html = useMemo(() => {
@@ -622,7 +623,8 @@ function Editor() {
 
       <footer className="flex items-center gap-3 border-t border-border px-5 py-2 text-xs text-muted-foreground">
         <span>快捷键：Ctrl/Cmd + B 加粗 · I 斜体 · K 链接 · Shift+K 删除行 · Tab 缩进</span>
-        <span className="ml-auto text-primary">{status}</span>
+        <span className="ml-auto">共 {charCount} 字</span>
+        <span className="text-primary">{status}</span>
       </footer>
     </div>
   );
