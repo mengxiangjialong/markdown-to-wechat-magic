@@ -90,6 +90,7 @@ function Editor() {
   });
   const [localImages, setLocalImages] = useState<Record<string, string>>({});
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLElement>(null);
   const undoRef = useRef<string[]>([]);
   const redoRef = useRef<string[]>([]);
   const lastPushRef = useRef(0);
@@ -131,6 +132,16 @@ function Editor() {
       return next;
     });
     lastPushRef.current = 0;
+  }, []);
+
+  const syncPreviewScroll = useCallback(() => {
+    const editor = taRef.current;
+    const preview = previewRef.current;
+    if (!editor || !preview) return;
+
+    const editorRange = editor.scrollHeight - editor.clientHeight;
+    const previewRange = preview.scrollHeight - preview.clientHeight;
+    preview.scrollTop = editorRange > 0 ? (editor.scrollTop / editorRange) * previewRange : 0;
   }, []);
 
   useEffect(() => {
@@ -606,6 +617,7 @@ function Editor() {
             ref={taRef}
             value={markdown}
             wrap="soft"
+            onScroll={syncPreviewScroll}
             onChange={(e) => onChangeText(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
@@ -614,7 +626,7 @@ function Editor() {
           />
         </section>
 
-        <section className="min-h-0 overflow-auto bg-muted p-6">
+        <section ref={previewRef} className="min-h-0 overflow-auto bg-muted p-6">
           <div className="mx-auto w-[375px] rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div dangerouslySetInnerHTML={{ __html: html }} />
           </div>
