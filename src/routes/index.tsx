@@ -1,3 +1,8 @@
+import { Copy, Check, FilePenLine, Smartphone, Palette, Trash2, Plus, CircleCheck, PencilLine, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { EditorToolbar, ToolButton } from "@/components/editor-toolbar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderWeixinHtml } from "@/lib/md2wx";
@@ -78,8 +83,9 @@ const DRAFT_KEY = "mp_tool_draft_v1";
 
 function Editor() {
   const [markdown, setMarkdown] = useState(SAMPLE);
+  const [mobilePane, setMobilePane] = useState<"editor" | "preview">("editor");
   const [customThemes, setCustomThemes] = useState<Theme[]>([]);
-  const [themeId, setThemeId] = useState(BUILTIN_THEMES[0]!.id);
+  const [themeId, setThemeId] = useState(BUILTIN_THEMES[0]?.id ?? "raccoon-purple");
   const [status, setStatus] = useState<string>("");
   const [showThemeForm, setShowThemeForm] = useState(false);
   const [form, setForm] = useState<ThemeConfig>({
@@ -90,7 +96,7 @@ function Editor() {
   });
   const [localImages, setLocalImages] = useState<Record<string, string>>({});
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const undoRef = useRef<string[]>([]);
   const redoRef = useRef<string[]>([]);
   const lastPushRef = useRef(0);
@@ -157,9 +163,10 @@ function Editor() {
 
   const charCount = useMemo(() => markdown.replace(/\s/g, "").length, [markdown]);
   const themes = useMemo(() => [...BUILTIN_THEMES, ...customThemes], [customThemes]);
-  const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0]!;
+  const theme = themes.find((t) => t.id === themeId) ?? BUILTIN_THEMES[0];
   const html = useMemo(() => {
     try {
+      if (!theme) return "";
       let out = renderWeixinHtml(normalizeHeadings(closeUnclosedFences(markdown)), theme);
       for (const [id, url] of Object.entries(localImages)) out = out.split(`local-image:${id}`).join(url);
       return out;
@@ -318,7 +325,7 @@ function Editor() {
       pushHistory(value);
       if (ordered) {
         const [, indent, number, marker, content] = ordered;
-        if (!content!.trim()) {
+        if (!content?.trim()) {
           const extraBreak = lineEnd === -1 ? "\n" : "";
           setMarkdown(value.slice(0, lineStart) + extraBreak + value.slice(end));
           const caret = lineStart + extraBreak.length;
@@ -333,8 +340,9 @@ function Editor() {
         return true;
       }
 
-      const [, indent, marker, content] = unordered!;
-      if (!content!.trim()) {
+      if (!unordered) return false;
+      const [, indent, marker, content] = unordered;
+      if (!content?.trim()) {
         const extraBreak = lineEnd === -1 ? "\n" : "";
         setMarkdown(value.slice(0, lineStart) + extraBreak + value.slice(end));
         const caret = lineStart + extraBreak.length;
@@ -448,7 +456,7 @@ function Editor() {
     const next = customThemes.filter((t) => t.id !== id);
     setCustomThemes(next);
     saveCustomThemes(next);
-    if (themeId === id) setThemeId(BUILTIN_THEMES[0]!.id);
+    if (themeId === id) setThemeId(BUILTIN_THEMES[0]?.id ?? "raccoon-purple");
   };
 
   const toolbar: [string, () => void][] = [
@@ -465,179 +473,90 @@ function Editor() {
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => uploadImages(e.target.files)} />
-      <header className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3">
-        <h1 className="text-base font-bold tracking-tight">
-          WeChat<span className="text-primary">-article</span>
-        </h1>
-        <span className="hidden text-xs text-muted-foreground sm:inline">
-          左写 Markdown · 右看公众号 · 一键复制
-        </span>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <select
-            value={themeId}
-            onChange={(e) => setThemeId(e.target.value)}
-            className="rounded-md border border-border bg-card px-2 py-1.5 text-sm"
-          >
-            {themes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-                {t.builtin ? "" : " ·自定义"}
-              </option>
-            ))}
-          </select>
-          {!theme.builtin && (
-            <button
-              onClick={() => removeTheme(theme.id)}
-              className="rounded-md border border-border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent"
-            >
-              删除
-            </button>
-          )}
-          <button
-            onClick={() => setShowThemeForm((v) => !v)}
-            className="rounded-md border border-border px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
-          >
-            自定义主题
-          </button>
-          <button
-            onClick={copyHtml}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            复制公众号 HTML
-          </button>
-        </div>
-      </header>
-
-      {showThemeForm && (
-        <div className="flex flex-wrap items-end gap-3 border-b border-border bg-card px-5 py-3 text-sm">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">名称</span>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="rounded-md border border-border bg-background px-2 py-1"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">主色</span>
-            <input
-              type="color"
-              value={form.primary}
-              onChange={(e) => setForm({ ...form, primary: e.target.value })}
-              className="h-8 w-14 rounded-md border border-border bg-background"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">辅助色</span>
-            <input
-              type="color"
-              value={form.accent}
-              onChange={(e) => setForm({ ...form, accent: e.target.value })}
-              className="h-8 w-14 rounded-md border border-border bg-background"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">标题风格</span>
-            <select
-              value={form.headingStyle}
-              onChange={(e) =>
-                setForm({ ...form, headingStyle: e.target.value as ThemeConfig["headingStyle"] })
-              }
-              className="rounded-md border border-border bg-background px-2 py-1"
-            >
-              <option value="gradient">渐变徽章</option>
-              <option value="solid">纯色圆角块</option>
-              <option value="bar">左侧竖条</option>
-              <option value="text">渐变文字</option>
-            </select>
-          </label>
-          <button
-            onClick={saveForm}
-            className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            保存主题
-          </button>
-        </div>
-      )}
-
-      <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-2">
-        <section className="flex min-h-0 flex-col border-r border-border">
-          <div className="flex flex-wrap items-center justify-start gap-2 border-b border-border px-3 py-2">
-            <div className="flex items-center gap-1">
-              <select
-                aria-label="标题级别"
-                value=""
-                onChange={(e) => {
-                  const depth = Number(e.target.value);
-                  if (depth) setHeading(depth);
-                }}
-                className="rounded bg-transparent px-2 py-1 text-center text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <option value="" disabled>
-                  标题
-                </option>
-                <option value="1">一级标题</option>
-                <option value="2">二级标题</option>
-                <option value="3">三级标题</option>
-                <option value="4">四级标题</option>
-                <option value="5">五级标题</option>
-                <option value="6">六级标题</option>
-              </select>
-              <select
-                aria-label="列表类型"
-                value=""
-                onChange={(e) => {
-                  if (e.target.value === "unordered") prefixLines("- ");
-                  if (e.target.value === "ordered") setOrderedList();
-                }}
-                className="rounded bg-transparent px-2 py-1 text-center text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <option value="" disabled>
-                  列表
-                </option>
-                <option value="unordered">无序列表</option>
-                <option value="ordered">有序列表</option>
-              </select>
-            </div>
-            <div className="flex flex-wrap justify-start gap-1">
-              {toolbar.map(([label, fn]) => (
-                <button
-                  key={label}
-                  onClick={fn}
-                  className="rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+    <TooltipProvider delayDuration={300}>
+      <div className="writing-workspace">
+        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => uploadImages(e.target.files)} />
+        <header className="workspace-header">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="brand-symbol"><FilePenLine className="size-5" /></span>
+            <h1 className="text-lg font-semibold">WeChat-article</h1>
+            <span className="workspace-category">公众号排版</span>
           </div>
-          <textarea
-            ref={taRef}
-            value={markdown}
-            wrap="soft"
-            onScroll={syncPreviewScroll}
-            onChange={(e) => onChangeText(e.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={onPaste}
-            spellCheck={false}
-            className="min-h-0 flex-1 resize-none whitespace-pre-wrap break-words bg-background p-5 font-mono text-sm leading-relaxed outline-none"
-          />
-        </section>
+          <Button onClick={copyHtml} className="copy-button">
+            {status.startsWith("已复制") ? <Check /> : <Copy />}<span>复制公众号 HTML</span>
+          </Button>
+        </header>
 
-        <section ref={previewRef} className="min-h-0 overflow-auto bg-muted p-6">
-          <div className="mx-auto w-[375px] rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div dangerouslySetInnerHTML={{ __html: html }} />
-          </div>
-        </section>
-      </main>
+        <div className="mobile-view-switch" role="group" aria-label="工作区视图">
+          <Button variant={mobilePane === "editor" ? "secondary" : "ghost"} aria-pressed={mobilePane === "editor"} onClick={() => setMobilePane("editor")}><PencilLine />编辑</Button>
+          <Button variant={mobilePane === "preview" ? "secondary" : "ghost"} aria-pressed={mobilePane === "preview"} onClick={() => setMobilePane("preview")}><Eye />预览</Button>
+        </div>
 
-      <footer className="flex items-center gap-3 border-t border-border px-5 py-2 text-xs text-muted-foreground">
-        <span>快捷键：Ctrl/Cmd + B 加粗 · I 斜体 · K 链接 · Shift+K 删除行 · Tab 缩进</span>
-        <span className="ml-auto">共 {charCount} 字</span>
-        <span className="text-primary">{status}</span>
-      </footer>
-    </div>
+        <main className="workspace-main" data-mobile-pane={mobilePane}>
+          <section className="editor-pane" aria-label="Markdown 编辑区">
+            <div className="pane-heading">
+              <div className="flex items-center gap-2"><PencilLine className="size-4 text-muted-foreground" /><h2 className="text-sm font-semibold">Markdown 编辑</h2></div>
+              <span className="pane-meta">.md</span>
+            </div>
+            <EditorToolbar tools={toolbar} undo={undo} redo={redo} setHeading={setHeading} setUnorderedList={() => prefixLines("- ")} setOrderedList={setOrderedList} />
+            <textarea
+              aria-label="Markdown 文章"
+              ref={taRef}
+              value={markdown}
+              wrap="soft"
+              onScroll={syncPreviewScroll}
+              onChange={(e) => onChangeText(e.target.value)}
+              onKeyDown={onKeyDown}
+              onPaste={onPaste}
+              spellCheck={false}
+              className="markdown-input"
+            />
+          </section>
+
+          <section className="preview-pane" aria-label="公众号预览区">
+            <div className="pane-heading">
+              <div className="flex items-center gap-2"><Eye className="size-4 text-muted-foreground" /><h2 className="text-sm font-semibold">公众号预览</h2></div>
+              <span className="pane-meta flex items-center gap-1.5"><Smartphone className="size-3.5" />375 px</span>
+            </div>
+            <div className="preview-controls">
+              <Palette className="size-4 shrink-0 text-muted-foreground" />
+              <Select value={themeId} onValueChange={setThemeId}>
+                <SelectTrigger aria-label="文章主题" className="h-8 min-w-0 flex-1 bg-card text-xs shadow-none"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {themes.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}{t.builtin ? "" : " ·自定义"}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {theme && !theme.builtin && <ToolButton label="删除主题" icon={Trash2} onClick={() => removeTheme(theme.id)} />}
+              <Button variant="ghost" size="sm" className="shrink-0 px-2 text-xs text-muted-foreground" aria-expanded={showThemeForm} onClick={() => setShowThemeForm((v) => !v)}><Plus />自定义</Button>
+            </div>
+            {showThemeForm && (
+              <form className="theme-form" onSubmit={(event) => { event.preventDefault(); saveForm(); }}>
+                <label className="theme-name"><span>主题名称</span><input aria-label="主题名称" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+                <div className="flex items-end gap-3">
+                  <label><span>主色</span><input aria-label="主色" type="color" value={form.primary} onChange={(e) => setForm({ ...form, primary: e.target.value })} /></label>
+                  <label><span>辅助色</span><input aria-label="辅助色" type="color" value={form.accent} onChange={(e) => setForm({ ...form, accent: e.target.value })} /></label>
+                  <label className="min-w-0 flex-1"><span>标题风格</span>
+                    <Select value={form.headingStyle} onValueChange={(value) => setForm({ ...form, headingStyle: value as ThemeConfig["headingStyle"] })}>
+                      <SelectTrigger aria-label="标题风格" className="h-8 bg-card text-xs shadow-none"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="gradient">渐变徽章</SelectItem><SelectItem value="solid">纯色圆角块</SelectItem><SelectItem value="bar">左侧竖条</SelectItem><SelectItem value="text">渐变文字</SelectItem></SelectContent>
+                    </Select>
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2"><Button type="button" variant="ghost" size="sm" onClick={() => setShowThemeForm(false)}>取消</Button><Button type="submit" size="sm">保存主题</Button></div>
+              </form>
+            )}
+            <div ref={previewRef} className="preview-scroll">
+              <div className="article-paper"><div dangerouslySetInnerHTML={{ __html: html }} /></div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="workspace-footer">
+          <span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-primary" />本地草稿</span>
+          <span role="status" className="workspace-status">{status}</span>
+          <span className="word-count">共 <strong>{charCount.toLocaleString()}</strong> 字</span>
+        </footer>
+      </div>
+    </TooltipProvider>
   );
 }
