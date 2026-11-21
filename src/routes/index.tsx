@@ -483,7 +483,7 @@ function Editor() {
             <span className="workspace-category">公众号排版</span>
           </div>
           <Button onClick={copyHtml} className="copy-button">
-            {status.startsWith("已复制") ? <Check /> : <Copy />}<span>复制公众号 HTML</span>
+            {status.startsWith("已复制") ? <Check /> : <Copy />}<span>复制 HTML</span>
           </Button>
         </header>
 
@@ -521,13 +521,13 @@ function Editor() {
             <div className="preview-controls">
               <Palette className="size-4 shrink-0 text-muted-foreground" />
               <Select value={themeId} onValueChange={setThemeId}>
-                <SelectTrigger aria-label="文章主题" className="h-8 min-w-0 flex-1 bg-card text-xs shadow-none"><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="文章主题" className="theme-select h-8 w-[126px] min-w-0 shrink-0 bg-card text-xs shadow-none"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {themes.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}{t.builtin ? "" : " ·自定义"}</SelectItem>)}
                 </SelectContent>
               </Select>
               {theme && !theme.builtin && <ToolButton label="删除主题" icon={Trash2} onClick={() => removeTheme(theme.id)} />}
-              <Button variant="ghost" size="sm" className="shrink-0 px-2 text-xs text-muted-foreground" aria-expanded={showThemeForm} onClick={() => setShowThemeForm((v) => !v)}><Plus />自定义</Button>
+              <Button variant="ghost" size="sm" className="theme-form-toggle shrink-0 px-2 text-xs text-muted-foreground" aria-expanded={showThemeForm} onClick={() => setShowThemeForm((v) => !v)}><Plus />自定义</Button>
             </div>
             {showThemeForm && (
               <form className="theme-form" onSubmit={(event) => { event.preventDefault(); saveForm(); }}>
