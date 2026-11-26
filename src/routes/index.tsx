@@ -168,7 +168,10 @@ function Editor() {
     try {
       if (!theme) return "";
       let out = renderWeixinHtml(normalizeHeadings(closeUnclosedFences(markdown)), theme);
-      for (const [id, url] of Object.entries(localImages)) out = out.split(`local-image:${id}`).join(url);
+      for (const [id, url] of Object.entries(localImages)) {
+        out = out.split(`"local-file:${id}"`).join(`"${url}" download target="_blank" rel="noopener"`);
+        out = out.split(`local-image:${id}`).join(url);
+      }
       return out;
     } catch (e) {
       return `<p>渲染出错：${(e as Error).message}</p>`;
@@ -179,7 +182,16 @@ function Editor() {
   const uploadImages = (files: FileList | null) => {
     if (!files) return;
     Array.from(files).forEach((f) => {
-      if (!f.type.startsWith("image/")) return;
+      if (!f.type.startsWith("image/")) {
+        const id = String(Date.now() + Math.floor(Math.random() * 1000));
+        setLocalImages((m) => ({ ...m, [id]: URL.createObjectURL(f) }));
+        const name = f.name.replace(/[\[\]()]/g, "");
+        const kb = f.size >= 1048576 ? `${(f.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(f.size / 1024))} KB`;
+        const md = `\n[📎 ${name}（${kb}）](local-file:${id})\n`;
+        const pos = taRef.current ? taRef.current.selectionEnd : markdown.length;
+        setMarkdown((v) => v.slice(0, pos) + md + v.slice(pos));
+        return;
+      }
       const r = new FileReader();
       r.onload = () => {
         const id = String(Date.now() + Math.floor(Math.random() * 1000));
@@ -466,7 +478,7 @@ function Editor() {
     ["引用", () => prefixLines("> ")],
     ["代码", () => surround("\n```js\n", "\n```\n", "code")],
     ["图片", () => surround("![", "](https://)", "图片说明")],
-    ["上传图", () => fileRef.current?.click()],
+    ["上传附件", () => fileRef.current?.click()],
     ["卡片", () => surround("\n:::card 标题\n", "\n:::\n", "内容")],
     ["提示", () => surround("\n:::tip 小提示\n", "\n:::\n", "内容")],
     ["分隔", () => surround("\n:::divider · · ·\n", "", "")],
@@ -475,7 +487,7 @@ function Editor() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="writing-workspace">
-        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => uploadImages(e.target.files)} />
+        <input ref={fileRef} type="file" multiple hidden onChange={(e) => uploadImages(e.target.files)} />
         <header className="workspace-header">
           <div className="flex min-w-0 items-center gap-3">
             <span className="brand-symbol"><FilePenLine className="size-5" /></span>
