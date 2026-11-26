@@ -111,7 +111,12 @@ export function htmlToMarkdown(html: string): string {
   doc.querySelectorAll("br").forEach((br) => br.replaceWith(doc.createTextNode("\n")));
   doc
     .querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr,pre,section")
-    .forEach((el) => el.append(doc.createTextNode("\n")));
+    .forEach((el) => {
+      // Paragraph-like blocks need a blank line in Markdown; one newline makes
+      // adjacent copied paragraphs render as a single continuous paragraph.
+      const separator = /^(?:P|DIV|SECTION)$/.test(el.tagName) ? "\n\n" : "\n";
+      el.append(doc.createTextNode(separator));
+    });
 
   return (doc.body.textContent ?? "")
     .replace(/\u00a0/g, " ")
@@ -456,7 +461,7 @@ export function normalizeClipboard(e: ClipboardEvent | React.ClipboardEvent): st
   const dt = (e as React.ClipboardEvent).clipboardData as DataTransfer;
   const html = dt.getData("text/html");
   const plain = dt.getData("text/plain");
-  const hasFormatting = /<(?:table|li|h[1-6]|strong|b|pre)[\s>]|font-weight\s*:/i.test(html);
+  const hasFormatting = /<(?:table|li|h[1-6]|strong|b|pre|p|div|section|br)[\s>]|font-weight\s*:/i.test(html);
   const source = html && (hasFormatting || !plain) ? htmlToMarkdown(html) : plain;
   return normalizePastedText(source || plain);
 }
